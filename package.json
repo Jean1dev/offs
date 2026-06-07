@@ -13,6 +13,8 @@
     "@ai-sdk/google": "^3.0.80",
     "@ai-sdk/openai": "^3.0.68",
     "@auth/mongodb-adapter": "^3.11.2",
+    "@fontsource/cormorant-garamond": "^5.2.11",
+    "@fontsource/dm-sans": "^5.2.8",
     "ai": "^6.0.197",
     "mongodb": "^6.21.0",
     "mongoose": "^9.6.3",

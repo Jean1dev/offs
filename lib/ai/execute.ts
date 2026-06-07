@@ -22,6 +22,8 @@ export interface RunAgentInput {
   narrative?: NarrativeModelId;
   /** Customized base prompt, when the user overrode the agent (Phase 8). */
   systemPromptOverride?: string;
+  /** Image inputs (data URLs) — prints for channel agents (RN04). */
+  images?: string[];
 }
 
 function systemFor(input: RunAgentInput): string {
@@ -30,23 +32,44 @@ function systemFor(input: RunAgentInput): string {
   return buildSystemPrompt(input.agent, { narrative: input.narrative });
 }
 
+/** Builds the user turn: plain prompt, or multimodal message when images exist. */
+function callArgs(input: RunAgentInput) {
+  const system = systemFor(input);
+  if (input.images && input.images.length > 0) {
+    return {
+      system,
+      messages: [
+        {
+          role: "user" as const,
+          content: [
+            { type: "text" as const, text: input.context },
+            ...input.images.map((img) => ({
+              type: "image" as const,
+              image: img,
+            })),
+          ],
+        },
+      ],
+    };
+  }
+  return { system, prompt: input.context };
+}
+
 /** One-shot structured generation. Returns the finished artifact content. */
 export async function runAgent(input: RunAgentInput): Promise<ArtifactContent> {
   const { object } = await generateObject({
     model: getLanguageModel(input.model),
     schema: artifactContentSchema,
-    system: systemFor(input),
-    prompt: input.context,
+    ...callArgs(input),
   });
   return object as ArtifactContent;
 }
 
-/** Streaming structured generation — for live "generating…" UI in Phase 6. */
+/** Streaming structured generation — for live "generating…" UI. */
 export function streamAgent(input: RunAgentInput) {
   return streamObject({
     model: getLanguageModel(input.model),
     schema: artifactContentSchema,
-    system: systemFor(input),
-    prompt: input.context,
+    ...callArgs(input),
   });
 }
