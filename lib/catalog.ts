@@ -25,7 +25,7 @@ export const MODELS: Record<
   AIModelId,
   { name: string; short: string; mono: string; tint: string }
 > = {
-  claude: { name: "Claude Sonnet 4.5", short: "Claude", mono: "C", tint: "var(--rose-500)" },
+  claude: { name: "Claude Opus 4.8", short: "Claude", mono: "C", tint: "var(--rose-500)" },
   gpt: { name: "GPT-4o", short: "GPT-4o", mono: "G", tint: "var(--neutral-600)" },
   gemini: { name: "Gemini 2.5 Pro", short: "Gemini", mono: "G", tint: "var(--gold-500)" },
 };
