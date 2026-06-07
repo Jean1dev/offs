@@ -42,6 +42,8 @@ const ProjectSchema = new Schema(
 
 export type ProjectDoc = InferSchemaType<typeof ProjectSchema> & {
   _id: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export const Project: Model<ProjectDoc> =

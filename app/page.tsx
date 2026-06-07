@@ -48,7 +48,7 @@ export default async function Home() {
       </p>
 
       <Link
-        href={loggedIn ? "/conta" : "/login"}
+        href={loggedIn ? "/projetos" : "/login"}
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -63,7 +63,7 @@ export default async function Home() {
           boxShadow: "var(--shadow-accent)",
         }}
       >
-        {loggedIn ? "Minha conta" : "Entrar"}
+        {loggedIn ? "Meus projetos" : "Entrar"}
         <Icon name="arrowR" size={17} color="#fff" />
       </Link>
     </main>

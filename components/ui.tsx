@@ -1,11 +1,12 @@
 "use client";
 
 // ui.tsx — Pauta shared atoms, built on BeautyBook tokens.
-// Ported from design/project/app/ui.jsx. Data-dependent atoms
-// (StatusBadge, ModelChip, AgentGlyph) land with the catalog/types in a later phase.
+// Ported from design/project/app/ui.jsx.
 
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { Icon, type IconName } from "./Icon";
+import { STATUS, MODELS, type ProjectStatus, type Agent } from "@/lib/catalog";
+import type { AIModelId } from "@/lib/types";
 
 export function SectionLabel({
   children,
@@ -334,5 +335,94 @@ export function ProgressRing({
         style={{ transition: "stroke-dashoffset .5s" }}
       />
     </svg>
+  );
+}
+
+// ── StatusBadge ─────────────────────────────────────────
+export function StatusBadge({ status }: { status: ProjectStatus }) {
+  const s = STATUS[status];
+  return (
+    <Badge tone={s.tone} dot>
+      {s.label}
+    </Badge>
+  );
+}
+
+// ── ModelChip ───────────────────────────────────────────
+export function ModelChip({
+  model,
+  size = "md",
+  showName = true,
+}: {
+  model: AIModelId;
+  size?: "sm" | "md";
+  showName?: boolean;
+}) {
+  const m = MODELS[model];
+  const d = size === "sm" ? 18 : 22;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+      <span
+        style={{
+          width: d,
+          height: d,
+          borderRadius: 6,
+          background: m.tint,
+          color: "#fff",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontFamily: "var(--font-body)",
+          fontWeight: 600,
+          fontSize: size === "sm" ? 10 : 11.5,
+          flexShrink: 0,
+        }}
+      >
+        {m.mono}
+      </span>
+      {showName && (
+        <span
+          style={{
+            fontFamily: "var(--font-body)",
+            fontSize: size === "sm" ? 12 : 13,
+            color: "var(--text-secondary)",
+            fontWeight: 500,
+          }}
+        >
+          {m.short}
+        </span>
+      )}
+    </span>
+  );
+}
+
+// ── AgentGlyph — rounded tile w/ tinted bg + icon ───────
+export function AgentGlyph({
+  agent,
+  size = 40,
+  style = {},
+}: {
+  agent: Pick<Agent, "icon" | "role">;
+  size?: number;
+  style?: CSSProperties;
+}) {
+  const isRev = agent.role === "revisor";
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size > 44 ? "var(--radius-md)" : 10,
+        flexShrink: 0,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: isRev ? "var(--gold-light)" : "var(--accent-light)",
+        color: isRev ? "var(--gold-600)" : "var(--accent)",
+        ...style,
+      }}
+    >
+      <Icon name={agent.icon} size={size * 0.5} />
+    </span>
   );
 }
