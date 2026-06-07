@@ -5,8 +5,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIES = [
-  "authjs.session-token",
-  "__Secure-authjs.session-token",
+  "offs.session-token",
+  "__Secure-offs.session-token",
 ];
 
 export default function proxy(req: NextRequest) {

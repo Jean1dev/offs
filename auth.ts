@@ -19,6 +19,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "database" },
   pages: { signIn: "/login" },
   trustHost: true,
+  cookies: {
+    sessionToken: {
+      name: "offs.session-token",
+      options: { httpOnly: true, sameSite: "lax" as const, path: "/" },
+    },
+  },
   callbacks: {
     session({ session, user }) {
       if (session.user) {
