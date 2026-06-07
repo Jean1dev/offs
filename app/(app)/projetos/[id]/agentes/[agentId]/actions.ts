@@ -25,5 +25,5 @@ export async function runAgentAction(input: AgentRunInput): Promise<RunResult> {
     return { error: "Falha ao executar o agente. Tente novamente." };
   }
 
-  redirect(`/projetos/${input.projectId}/artefatos/${artifactId}`);
+  redirect(`/projetos/${input.projectId}/artefatos/${artifactId}?novo=1`);
 }

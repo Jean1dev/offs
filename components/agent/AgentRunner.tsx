@@ -467,10 +467,14 @@ export function AgentRunner({
   project,
   agent,
   artifacts,
+  preselectArtifactId,
+  regenerateOf,
 }: {
   project: { id: string; model: AIModelId };
   agent: Agent;
   artifacts: ArtifactListItem[];
+  preselectArtifactId?: string;
+  regenerateOf?: string;
 }) {
   const router = useRouter();
   const dual = !!agent.dualContext;
@@ -485,6 +489,9 @@ export function AgentRunner({
   const [images, setImages] = useState<ImageItem[]>([]);
   const [text, setText] = useState("");
   const [selArts, setSelArts] = useState<string[]>(() => {
+    if (preselectArtifactId && artifacts.some((x) => x.id === preselectArtifactId)) {
+      return [preselectArtifactId];
+    }
     const a = artifacts.find((x) => x.name === agent.inputArtifact);
     return a ? [a.id] : [];
   });
@@ -513,6 +520,7 @@ export function AgentRunner({
         sources,
         selectedArtifactIds: selArts,
         images: images.map((im) => im.url),
+        regenerateOf,
       });
       if (res?.error) setError(res.error);
     });

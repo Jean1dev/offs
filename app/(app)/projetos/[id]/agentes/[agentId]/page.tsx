@@ -7,13 +7,16 @@ import { agentById } from "@/lib/catalog";
 
 export default async function AgentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; agentId: string }>;
+  searchParams: Promise<{ fonte?: string; regenerar?: string }>;
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
   const { id, agentId } = await params;
+  const { fonte, regenerar } = await searchParams;
   const agent = agentById(agentId);
   if (!agent) notFound();
 
@@ -36,6 +39,8 @@ export default async function AgentPage({
         project={{ id: project.id, model: project.model }}
         agent={agent}
         artifacts={artifacts}
+        preselectArtifactId={fonte}
+        regenerateOf={regenerar}
       />
     </>
   );

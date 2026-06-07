@@ -22,6 +22,8 @@ export interface AgentRunInput {
   sources: string[];
   selectedArtifactIds: string[];
   images: string[];
+  /** When set, regenerate this artifact as a new version (RN05) instead of new. */
+  regenerateOf?: string;
 }
 
 /** Flattens a structured artifact to text so it can feed another agent. */
@@ -160,13 +162,32 @@ export async function executeAgentRun(
     images: effInputs.includes("image") ? input.images : undefined,
   });
 
-  const artifact = await Artifact.createInitial({
-    projectId: project._id,
-    name: produces,
-    agentId: agent.id,
-    model,
-    content,
-  });
+  // Regenerate (RN05): archive the current active version and add the next one,
+  // preserving the lineage and the artifact's name. Otherwise create a fresh one.
+  let artifact = null;
+  if (input.regenerateOf && Types.ObjectId.isValid(input.regenerateOf)) {
+    const orig = await Artifact.findOne({
+      _id: input.regenerateOf,
+      projectId: project._id,
+    });
+    if (orig) {
+      artifact = await Artifact.regenerate(orig.lineageId, {
+        name: orig.name,
+        agentId: agent.id,
+        model,
+        content,
+      });
+    }
+  }
+  if (!artifact) {
+    artifact = await Artifact.createInitial({
+      projectId: project._id,
+      name: produces,
+      agentId: agent.id,
+      model,
+      content,
+    });
+  }
 
   await Project.updateOne(
     { _id: project._id, userId: uid },
