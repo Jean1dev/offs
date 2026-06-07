@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pauta (Offs)
 
-## Getting Started
+Assistente de projetos para criadores de YouTube. Cada projeto é um vídeo em
+produção; dentro dele, agentes de IA especializados analisam canais, identificam
+temas e escrevem roteiros — em modo guiado ou livre. Tudo que um agente produz vira
+um **artefato versionado**.
 
-First, run the development server:
+- Especificação de negócio: [`specs/offs-especificacoes-negocio.md`](specs/offs-especificacoes-negocio.md)
+- Plano técnico por fases: [`specs/offs-plano-tecnico.md`](specs/offs-plano-tecnico.md)
+- Referência de design (protótipo): [`design/`](design)
+
+## Stack
+
+- **Next.js 16** (App Router, Server Actions, TypeScript)
+- **MongoDB** via **Mongoose**
+- **Auth.js (NextAuth v5)** com Google OAuth2 (adapter MongoDB)
+- **Vercel AI SDK** — registry multi-provider: Claude, GPT-4o, Gemini 2.5 Pro
+- Design tokens BeautyBook (CSS variables) + fontes self-hosted (`@fontsource`)
+
+## Pré-requisitos
+
+- Node.js 20+ (testado com 22)
+- Uma instância MongoDB (Atlas ou local)
+- Credenciais OAuth2 do Google
+- Chaves de API dos provedores de IA que for usar
+
+## Configuração
+
+1. Instale as dependências:
+
+   ```bash
+   npm install
+   ```
+
+2. Copie `.env.example` para `.env.local` e preencha:
+
+   ```
+   MONGODB_URI=...
+   AUTH_SECRET=...                # openssl rand -base64 32
+   GOOGLE_CLIENT_ID=...
+   GOOGLE_CLIENT_SECRET=...
+   ANTHROPIC_API_KEY=...
+   OPENAI_API_KEY=...
+   GOOGLE_GENERATIVE_AI_API_KEY=...
+   ```
+
+   No Google Cloud Console, adicione o redirect URI
+   `http://localhost:3000/api/auth/callback/google`.
+
+   Modelos concretos são configuráveis por env (opcional):
+   `ANTHROPIC_MODEL` (default `claude-opus-4-8`), `OPENAI_MODEL` (`gpt-4o`),
+   `GOOGLE_MODEL` (`gemini-2.5-pro`).
+
+## Rodando
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run dev      # desenvolvimento (http://localhost:3000)
+npm run build    # build de produção
+npm run start    # servir o build
+npm run lint     # ESLint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Fluxo: `/login` → entrar com Google → `/projetos`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Dados de demonstração (dev)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Logado, abra **`/api/dev/seed`** para popular sua conta com projetos e artefatos
+de exemplo (inclui histórico de versões). Desabilitado em produção.
 
-## Learn More
+## Estrutura
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/                     # rotas (App Router)
+  (app)/                 # área autenticada: projetos, agentes, artefatos, conta
+  api/auth/[...nextauth] # Auth.js
+auth.ts                  # config NextAuth (Google + MongoDB adapter)
+proxy.ts                 # guard de rotas protegidas (edge)
+components/              # UI (Icon, átomos, telas)
+lib/
+  ai/                    # registry de modelos, prompts, schema, execução
+  catalog.ts             # catálogo de agentes + taxonomias
+  db/                    # conexões Mongoose + MongoClient
+  projects.ts artifacts.ts customization.ts agent-run.ts
+models/                  # schemas Mongoose (User, Project, Artifact, AgentCustomization)
+design/                  # protótipo de referência (não faz parte do build)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Compatível com qualquer host Node que rode `next start` (ex.: Vercel). Defina as
+mesmas variáveis de ambiente e o redirect URI de produção do Google
+(`https://SEU_DOMINIO/api/auth/callback/google`). Para uploads de prints, os inputs
+são enviados inline na execução (sem storage) — o `bodySizeLimit` das Server Actions
+está em 12 MB (`next.config.ts`).
 
-## Deploy on Vercel
+## Fora de escopo (v1)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Integração com a API do YouTube, colaboração entre usuários, exportação (PDF/DOCX),
+mobile, billing. Ver §10 da spec de negócio.

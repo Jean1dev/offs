@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Icon, type IconName } from "@/components/Icon";
 import { SectionLabel } from "@/components/ui";
+import { ThemeToggle } from "@/components/app/ThemeToggle";
 import { STATUS, type ProjectStatus } from "@/lib/catalog";
 import { createProjectAction } from "@/app/(app)/projetos/actions";
 import type { RecentProject } from "@/lib/projects";
@@ -244,11 +245,16 @@ export function Sidebar({
           borderTop: "1px solid var(--border)",
           paddingTop: 14,
           marginTop: 8,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
         }}
       >
         <Link
           href="/conta"
           style={{
+            flex: 1,
+            minWidth: 0,
             display: "flex",
             alignItems: "center",
             gap: 10,
@@ -292,8 +298,8 @@ export function Sidebar({
               {user.plan}
             </div>
           </div>
-          <Icon name="settings" size={16} color="var(--text-tertiary)" />
         </Link>
+        <ThemeToggle />
       </div>
     </aside>
   );
