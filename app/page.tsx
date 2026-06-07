@@ -1,6 +1,11 @@
+import Link from "next/link";
+import { auth } from "@/auth";
 import { Icon } from "@/components/Icon";
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  const loggedIn = !!session?.user;
+
   return (
     <main
       style={{
@@ -38,9 +43,29 @@ export default function Home() {
       </div>
 
       <p className="bb-body" style={{ maxWidth: 460 }}>
-        Fundação do projeto pronta — Next.js 16, design tokens BeautyBook, fontes
-        Cormorant Garamond + DM Sans e dark mode. As telas chegam nas próximas fases.
+        Assistente de projetos para criadores de YouTube. Planeje e produza vídeos
+        com agentes de IA — do canal ao roteiro.
       </p>
+
+      <Link
+        href={loggedIn ? "/conta" : "/login"}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 9,
+          padding: "12px 22px",
+          fontFamily: "var(--font-body)",
+          fontSize: 14,
+          fontWeight: 500,
+          color: "#fff",
+          background: "var(--accent)",
+          borderRadius: "var(--radius-full)",
+          boxShadow: "var(--shadow-accent)",
+        }}
+      >
+        {loggedIn ? "Minha conta" : "Entrar"}
+        <Icon name="arrowR" size={17} color="#fff" />
+      </Link>
     </main>
   );
 }
