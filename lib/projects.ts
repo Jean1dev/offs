@@ -122,6 +122,66 @@ export async function getRecentProjects(
   }));
 }
 
+export interface ArtifactListItem {
+  id: string;
+  name: string;
+  agentId: string;
+  model: AIModelId;
+  version: number;
+  versionsCount: number;
+  when: string;
+}
+
+/** Active artifacts of a project (one per lineage), newest first. */
+export async function getProjectArtifacts(
+  userId: string,
+  projectId: string,
+): Promise<ArtifactListItem[]> {
+  if (!Types.ObjectId.isValid(projectId)) return [];
+  await connectToDatabase();
+  const owns = await Project.exists({
+    _id: projectId,
+    userId: new Types.ObjectId(userId),
+  });
+  if (!owns) return [];
+
+  const active = await Artifact.find({ projectId, status: "ativo" })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const lineageIds = active.map((a) => a.lineageId);
+  const counts = lineageIds.length
+    ? await Artifact.aggregate<{ _id: Types.ObjectId; n: number }>([
+        { $match: { lineageId: { $in: lineageIds } } },
+        { $group: { _id: "$lineageId", n: { $sum: 1 } } },
+      ])
+    : [];
+  const countMap = new Map(counts.map((c) => [String(c._id), c.n]));
+
+  return active.map((a) => ({
+    id: String(a._id),
+    name: a.name,
+    agentId: a.agentId,
+    model: a.model as AIModelId,
+    version: a.version,
+    versionsCount: countMap.get(String(a.lineageId)) ?? 1,
+    when: formatRelative(a.updatedAt as Date),
+  }));
+}
+
+/** Advances/sets the project status (manual — RN: no auto-advance). */
+export async function setProjectStatus(
+  userId: string,
+  projectId: string,
+  status: ProjectStatus,
+): Promise<void> {
+  await connectToDatabase();
+  await Project.updateOne(
+    { _id: projectId, userId: new Types.ObjectId(userId) },
+    { status },
+  );
+}
+
 /** Creates an empty project and returns its id. */
 export async function createProject(
   userId: string,

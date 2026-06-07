@@ -8,7 +8,9 @@ import {
   renameProject,
   archiveProject,
   duplicateProject,
+  setProjectStatus,
 } from "@/lib/projects";
+import { STATUS, type ProjectStatus } from "@/lib/catalog";
 
 export async function createProjectAction() {
   const session = await auth();
@@ -32,6 +34,18 @@ export async function archiveProjectAction(formData: FormData) {
   const projectId = String(formData.get("projectId") ?? "");
   if (projectId) await archiveProject(session.user.id, projectId);
   revalidatePath("/projetos");
+}
+
+export async function setProjectStatusAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
+  const projectId = String(formData.get("projectId") ?? "");
+  const status = String(formData.get("status") ?? "") as ProjectStatus;
+  if (projectId && status in STATUS) {
+    await setProjectStatus(session.user.id, projectId, status);
+    revalidatePath(`/projetos/${projectId}`);
+    revalidatePath("/projetos");
+  }
 }
 
 export async function duplicateProjectAction(formData: FormData) {
