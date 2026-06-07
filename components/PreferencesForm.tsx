@@ -5,7 +5,8 @@ import {
   updatePreferences,
   type PreferencesState,
 } from "@/app/conta/actions";
-import { AI_MODELS, type AIModelId, type Channel } from "@/lib/types";
+import { type AIModelId, type Channel } from "@/lib/types";
+import { MODELS } from "@/lib/catalog";
 import { SectionLabel } from "@/components/ui";
 
 const fieldStyle: React.CSSProperties = {
@@ -57,9 +58,9 @@ export function PreferencesForm({
           defaultValue={initialModel}
           style={fieldStyle}
         >
-          {(Object.keys(AI_MODELS) as AIModelId[]).map((id) => (
+          {(Object.keys(MODELS) as AIModelId[]).map((id) => (
             <option key={id} value={id}>
-              {AI_MODELS[id].name}
+              {MODELS[id].name}
             </option>
           ))}
         </select>
