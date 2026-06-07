@@ -8,6 +8,7 @@ import { Project } from "@/models/Project";
 import { Artifact } from "@/models/Artifact";
 import { runAgent } from "@/lib/ai/execute";
 import { resolveModel } from "@/lib/ai/models";
+import { resolveAgentCustomization } from "@/lib/customization";
 import { agentById, type Agent, type NarrativeModelId } from "@/lib/catalog";
 import type { AIModelId } from "@/lib/types";
 import type { ArtifactContent } from "@/lib/artifact-content";
@@ -149,8 +150,13 @@ export async function executeAgentRun(
     ? { ...agent, produces, inputs: effInputs, desc: ctx.desc }
     : agent;
 
+  // Customization overlay (F12): project-scoped overrides global; affects the
+  // base prompt and adds a level to the model hierarchy (RN06).
+  const overlay = await resolveAgentCustomization(userId, agent.id, project._id);
+
   const model = resolveModel({
     execution: input.model,
+    customization: overlay.model,
     project: project.model as AIModelId,
   });
 
@@ -160,6 +166,7 @@ export async function executeAgentRun(
     context,
     narrative: agent.narrative ? input.narrative : undefined,
     images: effInputs.includes("image") ? input.images : undefined,
+    systemPromptOverride: overlay.prompt,
   });
 
   // Regenerate (RN05): archive the current active version and add the next one,
