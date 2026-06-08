@@ -4,6 +4,8 @@ import { Topbar } from "@/components/app/Topbar";
 import { AgentRunner } from "@/components/agent/AgentRunner";
 import { getProjectById, getProjectArtifacts } from "@/lib/projects";
 import { resolveAgentCustomization } from "@/lib/customization";
+import { getBalanceView } from "@/lib/credit-balance";
+import { agentCost } from "@/lib/credits";
 import { agentById } from "@/lib/catalog";
 
 export default async function AgentPage({
@@ -21,10 +23,11 @@ export default async function AgentPage({
   const agent = agentById(agentId);
   if (!agent) notFound();
 
-  const [project, artifacts, customization] = await Promise.all([
+  const [project, artifacts, customization, balance] = await Promise.all([
     getProjectById(session.user.id, id),
     getProjectArtifacts(session.user.id, id),
     resolveAgentCustomization(session.user.id, agentId, id),
+    getBalanceView(session.user.id),
   ]);
   if (!project) notFound();
 
@@ -44,6 +47,8 @@ export default async function AgentPage({
         preselectArtifactId={fonte}
         regenerateOf={regenerar}
         initialModel={customization.model}
+        cost={agentCost(agent.id)}
+        balance={balance}
       />
     </>
   );

@@ -8,9 +8,11 @@ import { useState } from "react";
 import { Icon, type IconName } from "@/components/Icon";
 import { SectionLabel } from "@/components/ui";
 import { ThemeToggle } from "@/components/app/ThemeToggle";
+import { CreditMeter } from "@/components/app/CreditMeter";
 import { STATUS, type ProjectStatus } from "@/lib/catalog";
 import { createProjectAction } from "@/app/(app)/projetos/actions";
 import type { RecentProject } from "@/lib/projects";
+import type { BalanceView } from "@/lib/credits";
 
 function Wordmark() {
   return (
@@ -117,10 +119,12 @@ export function Sidebar({
   recents,
   user,
   projectCount,
+  credits,
 }: {
   recents: RecentProject[];
   user: { name: string; plan: string; initial: string };
   projectCount: number;
+  credits: BalanceView;
 }) {
   const pathname = usePathname();
 
@@ -240,11 +244,15 @@ export function Sidebar({
         })}
       </div>
 
+      <div style={{ marginTop: 8 }}>
+        <CreditMeter balance={credits} />
+      </div>
+
       <div
         style={{
           borderTop: "1px solid var(--border)",
           paddingTop: 14,
-          marginTop: 8,
+          marginTop: 12,
           display: "flex",
           alignItems: "center",
           gap: 8,

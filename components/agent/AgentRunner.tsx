@@ -26,6 +26,7 @@ import {
 } from "@/lib/catalog";
 import type { AIModelId } from "@/lib/types";
 import type { ArtifactListItem } from "@/lib/projects";
+import { formatResetCountdown, type BalanceView } from "@/lib/credits";
 import { runAgentAction } from "@/app/(app)/projetos/[id]/agentes/[agentId]/actions";
 
 const fieldInput: React.CSSProperties = {
@@ -473,6 +474,8 @@ export function AgentRunner({
   preselectArtifactId,
   regenerateOf,
   initialModel,
+  cost,
+  balance,
 }: {
   project: { id: string; model: AIModelId };
   agent: Agent;
@@ -481,6 +484,10 @@ export function AgentRunner({
   regenerateOf?: string;
   /** Pre-selected model (e.g. from an agent customization); falls back to project. */
   initialModel?: AIModelId;
+  /** Custo em créditos desta execução (spec §3). */
+  cost: number;
+  /** Saldo atual do usuário — apenas reflete o estado do backend (spec §6). */
+  balance: BalanceView;
 }) {
   const router = useRouter();
   const dual = !!agent.dualContext;
@@ -505,13 +512,22 @@ export function AgentRunner({
   const [sources, setSources] = useState<string[]>([]);
   const [model, setModel] = useState<AIModelId>(initialModel ?? project.model);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const refMissing = dual && ctxMode === "referencia" && text.trim().length === 0;
-  const canRun = !refMissing && !pending;
+  // O backend é o guardião real (RN-C01); aqui só refletimos o saldo (spec §6.2).
+  const insufficient = balance.creditosRestantes < cost;
+  const empty = balance.creditosRestantes <= 0;
+  const resetLabel =
+    balance.proximoReset != null
+      ? formatResetCountdown(balance.proximoReset)
+      : null;
+  const canRun = !refMissing && !pending && !insufficient;
+  const creditWord = (n: number) => (n === 1 ? "crédito" : "créditos");
 
-  const run = () => {
-    if (!canRun) return;
+  const doRun = () => {
+    setConfirming(false);
     setError(null);
     startTransition(async () => {
       const res = await runAgentAction({
@@ -530,8 +546,41 @@ export function AgentRunner({
     });
   };
 
+  const run = () => {
+    if (!canRun) return;
+    // Regenerar consome créditos como uma nova execução (RN-C04): confirma antes (spec §6.4).
+    if (regenerateOf && !confirming) {
+      setConfirming(true);
+      return;
+    }
+    doRun();
+  };
+
   return (
     <div style={{ maxWidth: 1080, margin: "0 auto", padding: "32px 40px 90px" }}>
+      {/* Banner de saldo esgotado (spec §6.3): navegação livre, execução bloqueada. */}
+      {empty && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: "12px 16px",
+            marginBottom: 24,
+            borderRadius: "var(--radius-md)",
+            background: "var(--gold-light)",
+            border: "1px solid var(--gold-300)",
+          }}
+        >
+          <Icon name="alert" size={17} color="var(--gold-600)" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>
+            Créditos diários esgotados.{" "}
+            {resetLabel ? `Renova em ${resetLabel}.` : "Renova 24h após o primeiro uso."}{" "}
+            Você ainda pode ver e ler tudo — só não rodar novos agentes.
+          </span>
+        </div>
+      )}
+
       {/* header */}
       <div style={{ display: "flex", gap: 18, marginBottom: 28 }}>
         <AgentGlyph agent={agent} size={56} style={{ borderRadius: "var(--radius-md)" }} />
@@ -749,20 +798,72 @@ export function AgentRunner({
                 );
               })}
             </div>
-            <Button full size="lg" icon={pending ? undefined : "play"} onClick={run} disabled={!canRun}>
-              {pending ? (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
-                  <Spinner />
-                  Gerando…
-                </span>
-              ) : (
-                "Rodar agente"
-              )}
-            </Button>
-            {refMissing && (
+            {/* Custo visível antes de executar (spec §6.5). */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+                padding: "9px 12px",
+                marginBottom: 12,
+                borderRadius: "var(--radius-md)",
+                background: "var(--bg-subtle)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--text-secondary)" }}>
+                <Icon name="sparkle" size={13} color="var(--accent)" filled />
+                {regenerateOf ? "Regenerar custa" : "Custa"} {cost} {creditWord(cost)}
+              </span>
+              <span style={{ fontSize: 11.5, color: insufficient ? "var(--danger)" : "var(--text-tertiary)" }}>
+                {balance.creditosRestantes} {creditWord(balance.creditosRestantes)} disponíveis
+              </span>
+            </div>
+
+            {confirming ? (
+              /* Confirmação de regeneração com o custo (spec §6.4). */
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ fontSize: 12.5, color: "var(--text-secondary)", lineHeight: 1.5, textAlign: "center" }}>
+                  Regenerar custa {cost} {creditWord(cost)}. Você tem{" "}
+                  {balance.creditosRestantes}. Confirmar?
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button variant="secondary" full onClick={() => setConfirming(false)}>
+                    Cancelar
+                  </Button>
+                  <Button full icon="play" onClick={doRun}>
+                    Confirmar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button full size="lg" icon={pending ? undefined : "play"} onClick={run} disabled={!canRun}>
+                {pending ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 9 }}>
+                    <Spinner />
+                    Gerando…
+                  </span>
+                ) : (
+                  "Rodar agente"
+                )}
+              </Button>
+            )}
+            {refMissing && !confirming && (
               <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, fontSize: 12, color: "var(--text-tertiary)", justifyContent: "center" }}>
                 <Icon name="alert" size={14} />
                 Cole o roteiro de referência
+              </div>
+            )}
+            {/* Saldo insuficiente para este agente (spec §6.2). */}
+            {insufficient && !confirming && (
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 7, marginTop: 10, fontSize: 12, color: "var(--text-tertiary)", justifyContent: "center", textAlign: "center", lineHeight: 1.5 }}>
+                <Icon name="lock" size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>
+                  Este agente custa {cost} {creditWord(cost)}. Você tem{" "}
+                  {balance.creditosRestantes}.
+                  {resetLabel ? ` Renova em ${resetLabel}.` : ""}
+                </span>
               </div>
             )}
             {error && (

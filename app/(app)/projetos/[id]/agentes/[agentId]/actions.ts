@@ -7,6 +7,7 @@ import {
   AgentRunError,
   type AgentRunInput,
 } from "@/lib/agent-run";
+import { InsufficientCreditsError } from "@/lib/credit-balance";
 
 export interface RunResult {
   error?: string;
@@ -50,6 +51,8 @@ export async function runAgentAction(input: AgentRunInput): Promise<RunResult> {
       session.user.defaultModel,
     );
   } catch (e) {
+    // Saldo insuficiente (spec §6.2): mensagem acionável, sem detalhe técnico.
+    if (e instanceof InsufficientCreditsError) return { error: e.message };
     if (e instanceof AgentRunError) return { error: e.message };
     console.error("runAgentAction failed:", e);
     return { error: describeRunError(e) };

@@ -65,8 +65,11 @@ Da spec de negócio (§11). Bloqueiam funcionalidades correlatas.
 - [ ] **D05 — Exportação de artefatos (PDF/DOCX) na v1?** O botão “Exportar” foi omitido
       por estar fora de escopo; reavaliar.
 
-> **Quota / rate limiting** (cobrar execuções, limitar uso) depende de D02/D03 e **não está
-> implementado** — o projeto de referência tinha `user-request-limit`; aqui não há.
+> **Quota / rate limiting** — **implementado (free tier)**: o sistema de créditos
+> (`specs/offs-creditos.md`) limita execuções por saldo diário rolling, reserva créditos
+> antes da LLM e os devolve em falha técnica, e registra consumo por execução
+> (`UsageRecord`) como base do billing futuro. A migração para planos pagos (D02) só
+> precisa ajustar `creditos_diarios`/pesos — a arquitetura já comporta.
 
 ---
 

@@ -6,6 +6,7 @@ temas e escrevem roteiros — em modo guiado ou livre. Tudo que um agente produz
 um **artefato versionado**.
 
 - Especificação de negócio: [`specs/offs-especificacoes-negocio.md`](specs/offs-especificacoes-negocio.md)
+- Sistema de créditos e limite de uso: [`specs/offs-creditos.md`](specs/offs-creditos.md)
 - Plano técnico por fases: [`specs/offs-plano-tecnico.md`](specs/offs-plano-tecnico.md)
 - Referência de design (protótipo): [`design/`](design)
 
