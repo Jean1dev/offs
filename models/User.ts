@@ -23,7 +23,7 @@ const UserSchema = new Schema(
     emailVerified: Date,
     defaultModel: {
       type: String,
-      enum: ["claude", "gpt", "gemini"],
+      enum: ["claude", "claude-sonnet", "claude-haiku", "gpt", "gpt-mini", "gemini", "gemini-flash"],
       default: DEFAULT_AI_MODEL,
     },
     channel: { type: ChannelSchema, default: null },

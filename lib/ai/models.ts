@@ -17,8 +17,12 @@ const GOOGLE_MODEL = process.env.GOOGLE_MODEL ?? "gemini-2.5-pro";
 export const registry = customProvider({
   languageModels: {
     claude: anthropic(ANTHROPIC_MODEL),
+    "claude-sonnet": anthropic("claude-sonnet-4-6"),
+    "claude-haiku": anthropic("claude-haiku-4-5"),
     gpt: openai(OPENAI_MODEL),
+    "gpt-mini": openai("gpt-4o-mini"),
     gemini: google(GOOGLE_MODEL),
+    "gemini-flash": google("gemini-2.5-flash"),
   },
 });
 

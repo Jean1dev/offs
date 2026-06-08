@@ -64,7 +64,7 @@ const ArtifactSchema = new Schema<ArtifactDoc, ArtifactModel>(
     agentId: { type: String, required: true },
     model: {
       type: String,
-      enum: ["claude", "gpt", "gemini"],
+      enum: ["claude", "claude-sonnet", "claude-haiku", "gpt", "gpt-mini", "gemini", "gemini-flash"],
       required: true,
     },
     version: { type: Number, required: true, min: 1 },

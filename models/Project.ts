@@ -26,7 +26,7 @@ const ProjectSchema = new Schema(
     },
     model: {
       type: String,
-      enum: ["claude", "gpt", "gemini"],
+      enum: ["claude", "claude-sonnet", "claude-haiku", "gpt", "gpt-mini", "gemini", "gemini-flash"],
       default: DEFAULT_AI_MODEL,
     },
     // Agent ids already executed in this project.

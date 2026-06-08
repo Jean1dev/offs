@@ -25,9 +25,13 @@ export const MODELS: Record<
   AIModelId,
   { name: string; short: string; mono: string; tint: string }
 > = {
-  claude: { name: "Claude Opus 4.8", short: "Claude", mono: "C", tint: "var(--rose-500)" },
+  claude: { name: "Claude Opus 4.8", short: "Opus 4.8", mono: "C", tint: "var(--rose-500)" },
+  "claude-sonnet": { name: "Claude Sonnet 4.6", short: "Sonnet 4.6", mono: "S", tint: "var(--rose-400)" },
+  "claude-haiku": { name: "Claude Haiku 4.5", short: "Haiku 4.5", mono: "H", tint: "var(--rose-300)" },
   gpt: { name: "GPT-4o", short: "GPT-4o", mono: "G", tint: "var(--neutral-600)" },
-  gemini: { name: "Gemini 2.5 Pro", short: "Gemini", mono: "G", tint: "var(--gold-500)" },
+  "gpt-mini": { name: "GPT-4o mini", short: "4o mini", mono: "g", tint: "var(--neutral-400)" },
+  gemini: { name: "Gemini 2.5 Pro", short: "Gemini Pro", mono: "G", tint: "var(--gold-500)" },
+  "gemini-flash": { name: "Gemini 2.5 Flash", short: "Gemini Flash", mono: "g", tint: "var(--gold-400)" },
 };
 
 // ── Agent input types ──
@@ -40,7 +44,7 @@ export const INPUT: Record<
   image: { icon: "image", label: "Imagem", hint: "Prints do YouTube" },
   text: { icon: "text", label: "Texto livre", hint: "Digitado por você" },
   artifact: { icon: "layers", label: "Artefato", hint: "Saída de outro agente" },
-  sources: { icon: "link", label: "Fontes", hint: "Obrigatório · bloqueia execução" },
+  sources: { icon: "link", label: "Fontes", hint: "Opcional · melhora a precisão" },
 };
 
 // ── Narrative models (for `estruturador` and `roteirista`) ──

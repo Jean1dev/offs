@@ -4,7 +4,7 @@
 
 /** AI model ids. Display metadata lives in lib/catalog (MODELS); the runtime
  *  registry that actually calls them lands in Phase 3. */
-export type AIModelId = "claude" | "gpt" | "gemini";
+export type AIModelId = "claude" | "claude-sonnet" | "claude-haiku" | "gpt" | "gpt-mini" | "gemini" | "gemini-flash";
 
 export const DEFAULT_AI_MODEL: AIModelId = "claude";
 

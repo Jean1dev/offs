@@ -24,7 +24,7 @@ const AgentCustomizationSchema = new Schema(
     // Custom base prompt. Empty/absent => use the catalog default prompt.
     prompt: { type: String, default: "" },
     // Specific model for this agent. Absent => fall back to the model hierarchy.
-    model: { type: String, enum: ["claude", "gpt", "gemini"], default: null },
+    model: { type: String, enum: ["claude", "claude-sonnet", "claude-haiku", "gpt", "gpt-mini", "gemini", "gemini-flash"], default: null },
     scope: { type: String, enum: ["global", "projeto"], required: true },
     // Required when scope === "projeto"; null for global overlays.
     projectId: {
