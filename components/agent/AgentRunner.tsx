@@ -507,10 +507,8 @@ export function AgentRunner({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const sourcesMissing =
-    !!agent.requiresSources && effInputs.includes("sources") && sources.length === 0;
   const refMissing = dual && ctxMode === "referencia" && text.trim().length === 0;
-  const canRun = !sourcesMissing && !refMissing && !pending;
+  const canRun = !refMissing && !pending;
 
   const run = () => {
     if (!canRun) return;
@@ -641,8 +639,9 @@ export function AgentRunner({
                   Política editorial
                 </div>
                 <div style={{ fontSize: 12.5, color: "var(--text-secondary)", lineHeight: 1.55 }}>
-                  O Roteirista escreve <strong>somente</strong> a partir das fontes que
-                  você fornecer. Sem fontes, ele não roda — nada de inventar dados.
+                  O Roteirista prioriza as fontes que você fornecer. Sem fontes, ele
+                  escreve a partir do contexto do projeto — mas fontes deixam o
+                  resultado mais preciso.
                 </div>
               </div>
             </div>
@@ -673,7 +672,7 @@ export function AgentRunner({
           )}
 
           {effInputs.includes("sources") && (
-            <Field label="Fontes" icon="link" hint={sourcesMissing ? "obrigatório" : `${sources.length} ${sources.length === 1 ? "fonte" : "fontes"}`}>
+            <Field label="Fontes" icon="link" optional hint={sources.length ? `${sources.length} ${sources.length === 1 ? "fonte" : "fontes"}` : undefined}>
               <SourcesInput sources={sources} setSources={setSources} />
             </Field>
           )}
@@ -760,12 +759,6 @@ export function AgentRunner({
                 "Rodar agente"
               )}
             </Button>
-            {sourcesMissing && (
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, fontSize: 12, color: "var(--gold-600)", justifyContent: "center" }}>
-                <Icon name="alert" size={14} />
-                Aguardando fontes
-              </div>
-            )}
             {refMissing && (
               <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 10, fontSize: 12, color: "var(--text-tertiary)", justifyContent: "center" }}>
                 <Icon name="alert" size={14} />

@@ -109,10 +109,7 @@ export async function executeAgentRun(
   const effInputs = ctx ? ctx.inputs : agent.inputs;
   const produces = ctx ? ctx.produces : agent.produces;
 
-  // Editorial gates (RN03 / referencia).
-  if (agent.requiresSources && effInputs.includes("sources") && input.sources.length === 0) {
-    throw new AgentRunError("Aguardando fontes — o Roteirista não roda sem fontes.");
-  }
+  // Editorial gates (referencia mode only).
   if (
     agent.dualContext &&
     input.ctxMode === "referencia" &&

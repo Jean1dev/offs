@@ -821,57 +821,55 @@ export function ProjectInterior({
       <ProjectHeader project={project} channel={channel} />
       <div style={{ display: "flex", gap: 36, alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          {!isEmpty && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 4,
-                marginBottom: 26,
-                background: "var(--bg-subtle)",
-                padding: 4,
-                borderRadius: "var(--radius-full)",
-                width: "fit-content",
-              }}
-            >
-              {(
-                [
-                  ["guided", "route", "Modo guiado"],
-                  ["free", "grid", "Modo livre"],
-                ] as const
-              ).map(([k, ic, label]) => (
-                <button
-                  key={k}
-                  onClick={() => setMode(k)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 18px",
-                    borderRadius: "var(--radius-full)",
-                    border: "none",
-                    cursor: "pointer",
-                    fontFamily: "var(--font-body)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    transition: "all .16s",
-                    background: mode === k ? "var(--bg-surface)" : "transparent",
-                    color: mode === k ? "var(--accent)" : "var(--text-secondary)",
-                    boxShadow: mode === k ? "var(--shadow-sm)" : "none",
-                  }}
-                >
-                  <Icon name={ic} size={16} />
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-          {isEmpty ? (
-            <EmptyProjectBody ctx={ctx} />
-          ) : mode === "guided" ? (
-            <GuidedMode ctx={ctx} />
-          ) : (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              marginBottom: 26,
+              background: "var(--bg-subtle)",
+              padding: 4,
+              borderRadius: "var(--radius-full)",
+              width: "fit-content",
+            }}
+          >
+            {(
+              [
+                ["guided", "route", "Modo guiado"],
+                ["free", "grid", "Modo livre"],
+              ] as const
+            ).map(([k, ic, label]) => (
+              <button
+                key={k}
+                onClick={() => setMode(k)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "8px 18px",
+                  borderRadius: "var(--radius-full)",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "var(--font-body)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  transition: "all .16s",
+                  background: mode === k ? "var(--bg-surface)" : "transparent",
+                  color: mode === k ? "var(--accent)" : "var(--text-secondary)",
+                  boxShadow: mode === k ? "var(--shadow-sm)" : "none",
+                }}
+              >
+                <Icon name={ic} size={16} />
+                {label}
+              </button>
+            ))}
+          </div>
+          {mode === "free" ? (
             <FreeMode ctx={ctx} />
+          ) : isEmpty ? (
+            <EmptyProjectBody ctx={ctx} />
+          ) : (
+            <GuidedMode ctx={ctx} />
           )}
         </div>
         <LibraryPanel ctx={ctx} />
