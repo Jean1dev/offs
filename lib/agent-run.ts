@@ -9,6 +9,7 @@ import { Artifact } from "@/models/Artifact";
 import { runAgent } from "@/lib/ai/execute";
 import { resolveModel } from "@/lib/ai/models";
 import { resolveAgentCustomization } from "@/lib/customization";
+import { researchTopic } from "@/lib/ai/research";
 import { getStorage } from "@/lib/storage";
 import { agentById, type Agent, type NarrativeModelId } from "@/lib/catalog";
 import type { AIModelId } from "@/lib/types";
@@ -164,10 +165,20 @@ export async function executeAgentRun(
     global: globalModel,
   });
 
+  // Web-search research step (pesquisa real) for agents that need it, prepended
+  // to the context as factual base. Best effort: failure degrades gracefully.
+  let finalContext = context;
+  if (agent.webSearch) {
+    const research = await researchTopic(model, context);
+    if (research) {
+      finalContext = `Pesquisa na web (base factual — cite as fontes encontradas com as URLs):\n${research}\n\n${context}`;
+    }
+  }
+
   const content = await runAgent({
     agent: effectiveAgent,
     model,
-    context,
+    context: finalContext,
     narrative: agent.narrative ? input.narrative : undefined,
     images: effInputs.includes("image") ? input.images : undefined,
     systemPromptOverride: overlay.prompt,

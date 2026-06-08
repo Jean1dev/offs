@@ -98,6 +98,8 @@ export interface Agent {
   /** Operates in two distinct contexts, chosen at run time (RN08). */
   dualContext?: boolean;
   contexts?: { referencia: AgentContext; rascunho: AgentContext };
+  /** Runs a web-search research step before generating (pesquisa real). */
+  webSearch?: boolean;
 }
 
 export const AGENTS: Agent[] = [
@@ -196,6 +198,7 @@ export const AGENTS: Agent[] = [
     producesIcon: "book",
     inputs: ["text", "artifact"],
     inputArtifact: "Lista de temas",
+    webSearch: true,
     desc: "Pega seu texto livre e a lista de temas e condensa tudo em um briefing — os insumos essenciais para começar a roteirizar.",
   },
   {

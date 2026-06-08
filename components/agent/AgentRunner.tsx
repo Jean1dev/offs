@@ -11,7 +11,6 @@ import {
   Badge,
   RoleTag,
   Card,
-  ModelChip,
   AgentGlyph,
   SectionLabel,
 } from "@/components/ui";
@@ -679,13 +678,19 @@ export function AgentRunner({
             </Field>
           )}
 
-          {effInputs.includes("text") && !(dual && ctxMode === "referencia") && (
-            <Field label={agent.requiresSources ? "Direcionamentos extras" : "Texto livre"} icon="text" optional={effInputs.length > 1}>
+          {/* Texto livre disponível para todos os agentes (exceto no modo referência,
+              onde o textarea acima já captura o texto). Sempre opcional. */}
+          {!(dual && ctxMode === "referencia") && (
+            <Field
+              label={agent.requiresSources ? "Direcionamentos extras" : "Texto livre"}
+              icon="text"
+              optional
+            >
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={4}
-                placeholder={agent.requiresSources ? "Tom de voz, ênfases, o que evitar…" : "Contexto, tema, ângulo que você quer explorar…"}
+                placeholder={agent.requiresSources ? "Tom de voz, ênfases, o que evitar…" : "Contexto, tema, ângulo, instruções que você quer adicionar…"}
                 style={fieldInput}
               />
             </Field>
@@ -734,7 +739,6 @@ export function AgentRunner({
                       transition: "all .15s",
                     }}
                   >
-                    <ModelChip model={k} size="sm" showName={false} />
                     <span style={{ flex: 1, fontSize: 12.5, fontWeight: on ? 600 : 500, color: on ? "var(--text-primary)" : "var(--text-secondary)" }}>
                       {MODELS[k].name}
                     </span>
