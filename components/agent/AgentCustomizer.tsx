@@ -31,7 +31,10 @@ export function AgentCustomizer({
   const [model, setModel] = useState<AIModelId>(initial?.model ?? project.model);
   const [scope, setScope] = useState<CustomizationScope>(initial?.scope ?? "projeto");
 
-  const dirty = prompt !== basePrompt || model !== project.model;
+  const dirty =
+    prompt !== basePrompt ||
+    model !== project.model ||
+    scope !== (initial?.scope ?? "projeto");
 
   const resetToDefault = () => {
     setPrompt(basePrompt);

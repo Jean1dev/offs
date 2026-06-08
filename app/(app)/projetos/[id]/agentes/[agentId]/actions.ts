@@ -18,7 +18,11 @@ export async function runAgentAction(input: AgentRunInput): Promise<RunResult> {
 
   let artifactId: string;
   try {
-    artifactId = await executeAgentRun(session.user.id, input);
+    artifactId = await executeAgentRun(
+      session.user.id,
+      input,
+      session.user.defaultModel,
+    );
   } catch (e) {
     if (e instanceof AgentRunError) return { error: e.message };
     console.error("runAgentAction failed:", e);

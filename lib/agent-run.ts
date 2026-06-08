@@ -87,6 +87,8 @@ export class AgentRunError extends Error {}
 export async function executeAgentRun(
   userId: string,
   input: AgentRunInput,
+  /** User's global default model — the lowest level of the hierarchy (RN06). */
+  globalModel?: AIModelId,
 ): Promise<string> {
   await connectToDatabase();
   const uid = new Types.ObjectId(userId);
@@ -158,6 +160,7 @@ export async function executeAgentRun(
     execution: input.model,
     customization: overlay.model,
     project: project.model as AIModelId,
+    global: globalModel,
   });
 
   const content = await runAgent({

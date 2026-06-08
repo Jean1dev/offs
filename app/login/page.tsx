@@ -9,7 +9,12 @@ export default async function LoginPage({
 }) {
   const session = await auth();
   const { callbackUrl } = await searchParams;
-  if (session) redirect(callbackUrl || "/projetos");
+  // Only allow same-site relative paths (block open redirects + protocol-relative URLs).
+  const safeCallback =
+    callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+      ? callbackUrl
+      : "/projetos";
+  if (session) redirect(safeCallback);
 
   return (
     <main
@@ -67,7 +72,7 @@ export default async function LoginPage({
         <form
           action={async () => {
             "use server";
-            await signIn("google", { redirectTo: callbackUrl || "/projetos" });
+            await signIn("google", { redirectTo: safeCallback });
           }}
           style={{ width: "100%" }}
         >

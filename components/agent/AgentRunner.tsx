@@ -113,14 +113,18 @@ function ImageInput({
   setImages,
 }: {
   images: ImageItem[];
-  setImages: (v: ImageItem[]) => void;
+  setImages: React.Dispatch<React.SetStateAction<ImageItem[]>>;
 }) {
   const onPick = (files: FileList | null) => {
     if (!files) return;
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
+      // Functional updater so concurrent FileReader callbacks don't clobber each other.
       reader.onload = () =>
-        setImages([...images, { name: file.name, url: String(reader.result) }]);
+        setImages((prev) => [
+          ...prev,
+          { name: file.name, url: String(reader.result) },
+        ]);
       reader.readAsDataURL(file);
     });
   };
