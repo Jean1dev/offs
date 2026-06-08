@@ -531,7 +531,10 @@ function HeaderActions({ project }: { project: InteriorProject }) {
               }}
             >
               {statuses.map((s) => (
-                <form key={s} action={setProjectStatusAction} onClick={() => setStatusOpen(false)}>
+                <form key={s} action={async (formData) => {
+                  await setProjectStatusAction(formData);
+                  setStatusOpen(false);
+                }}>
                   <input type="hidden" name="projectId" value={project.id} />
                   <input type="hidden" name="status" value={s} />
                   <button
@@ -578,7 +581,10 @@ function HeaderActions({ project }: { project: InteriorProject }) {
           }}
         >
           <form
-            action={renameProjectAction}
+            action={async (formData) => {
+              await renameProjectAction(formData);
+              setRenaming(false);
+            }}
             onClick={(e) => e.stopPropagation()}
             style={{
               width: "100%",
@@ -633,7 +639,6 @@ function HeaderActions({ project }: { project: InteriorProject }) {
               </button>
               <button
                 type="submit"
-                onClick={() => setRenaming(false)}
                 style={{
                   padding: "9px 18px",
                   fontFamily: "var(--font-body)",

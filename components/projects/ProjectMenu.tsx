@@ -115,7 +115,10 @@ export function ProjectMenu({
           }}
         >
           <form
-            action={renameProjectAction}
+            action={async (formData) => {
+              await renameProjectAction(formData);
+              setRenaming(false);
+            }}
             onClick={stop}
             style={{
               width: "100%",
@@ -175,7 +178,6 @@ export function ProjectMenu({
               </button>
               <button
                 type="submit"
-                onClick={() => setRenaming(false)}
                 style={{
                   padding: "9px 18px",
                   fontFamily: "var(--font-body)",

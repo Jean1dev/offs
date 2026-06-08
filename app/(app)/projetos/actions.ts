@@ -24,8 +24,11 @@ export async function renameProjectAction(formData: FormData) {
   if (!session?.user?.id) redirect("/login");
   const projectId = String(formData.get("projectId") ?? "");
   const title = String(formData.get("title") ?? "");
-  if (projectId) await renameProject(session.user.id, projectId, title);
-  revalidatePath("/projetos");
+  if (projectId) {
+    await renameProject(session.user.id, projectId, title);
+    revalidatePath(`/projetos/${projectId}`);
+    revalidatePath("/projetos");
+  }
 }
 
 export async function archiveProjectAction(formData: FormData) {
