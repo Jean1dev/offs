@@ -12,6 +12,32 @@ export interface RunResult {
   error?: string;
 }
 
+/** Maps a thrown error to an actionable message (and surfaces detail in dev). */
+function describeRunError(e: unknown): string {
+  const err = e as {
+    name?: string;
+    message?: string;
+    statusCode?: number;
+  };
+  const status = err?.statusCode;
+  const name = err?.name ?? "";
+  const msg = err?.message ?? "";
+
+  if (status === 401 || status === 403 || name === "LoadAPIKeyError" || /api[\s-]?key/i.test(msg)) {
+    return "Chave de API do provedor ausente ou inválida — confira o .env.local.";
+  }
+  if (status === 429) {
+    return "Limite do provedor de IA atingido. Tente novamente em instantes.";
+  }
+  if (name === "NoObjectGeneratedError") {
+    return "O modelo não retornou o artefato no formato esperado. Tente outro modelo.";
+  }
+  if (process.env.NODE_ENV !== "production" && msg) {
+    return `Falha ao executar: ${msg}`;
+  }
+  return "Falha ao executar o agente. Tente de novo ou troque o modelo.";
+}
+
 export async function runAgentAction(input: AgentRunInput): Promise<RunResult> {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
@@ -25,16 +51,8 @@ export async function runAgentAction(input: AgentRunInput): Promise<RunResult> {
     );
   } catch (e) {
     if (e instanceof AgentRunError) return { error: e.message };
-    // Map common AI provider failures to actionable messages.
-    const status = (e as { statusCode?: number })?.statusCode;
-    if (status === 401 || status === 403) {
-      return { error: "Chave de API inválida ou sem acesso ao modelo selecionado." };
-    }
-    if (status === 429) {
-      return { error: "Limite do provedor de IA atingido. Tente novamente em instantes." };
-    }
     console.error("runAgentAction failed:", e);
-    return { error: "Falha ao executar o agente. Tente de novo ou troque o modelo." };
+    return { error: describeRunError(e) };
   }
 
   redirect(`/projetos/${input.projectId}/artefatos/${artifactId}?novo=1`);
