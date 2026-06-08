@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Card, StatusBadge, ModelChip } from "@/components/ui";
+import { Card, StatusBadge } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { GUIDED_FLOW } from "@/lib/catalog";
 import { ProjectMenu } from "@/components/projects/ProjectMenu";
@@ -117,7 +117,6 @@ export function ProjectCard({ p }: { p: ProjectSummary }) {
           <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
             {p.updated}
           </span>
-          <ModelChip model={p.model} size="sm" showName={false} />
         </span>
       </div>
     </Card>

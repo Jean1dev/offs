@@ -349,54 +349,6 @@ export function StatusBadge({ status }: { status: ProjectStatus }) {
   );
 }
 
-// ── ModelChip ───────────────────────────────────────────
-export function ModelChip({
-  model,
-  size = "md",
-  showName = true,
-}: {
-  model: AIModelId;
-  size?: "sm" | "md";
-  showName?: boolean;
-}) {
-  const m = MODELS[model];
-  const d = size === "sm" ? 18 : 22;
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-      <span
-        style={{
-          width: d,
-          height: d,
-          borderRadius: 6,
-          background: m.tint,
-          color: "#fff",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "var(--font-body)",
-          fontWeight: 600,
-          fontSize: size === "sm" ? 10 : 11.5,
-          flexShrink: 0,
-        }}
-      >
-        {m.mono}
-      </span>
-      {showName && (
-        <span
-          style={{
-            fontFamily: "var(--font-body)",
-            fontSize: size === "sm" ? 12 : 13,
-            color: "var(--text-secondary)",
-            fontWeight: 500,
-          }}
-        >
-          {m.short}
-        </span>
-      )}
-    </span>
-  );
-}
-
 // ── AgentGlyph — rounded tile w/ tinted bg + icon ───────
 export function AgentGlyph({
   agent,

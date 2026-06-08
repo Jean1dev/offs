@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
-import { Button, Badge, Card, ModelChip, SectionLabel } from "@/components/ui";
+import { Button, Badge, Card, SectionLabel } from "@/components/ui";
 import { MODELS, type Agent } from "@/lib/catalog";
 import type { AIModelId } from "@/lib/types";
 import type { EditOverlay, CustomizationScope } from "@/lib/customization";
@@ -175,7 +175,6 @@ export function AgentCustomizer({
                       transition: "all .15s",
                     }}
                   >
-                    <ModelChip model={k} size="sm" showName={false} />
                     <span style={{ flex: 1, fontSize: 12.5, fontWeight: on ? 600 : 500, color: on ? "var(--text-primary)" : "var(--text-secondary)" }}>
                       {MODELS[k].name}
                     </span>

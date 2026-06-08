@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { Topbar } from "@/components/app/Topbar";
-import { ModelChip } from "@/components/ui";
 import { ProjectInterior } from "@/components/project/ProjectInterior";
 import { getProjectById, getProjectArtifacts } from "@/lib/projects";
 
@@ -32,7 +31,6 @@ export default async function ProjectPage({
           { label: "Projetos", href: "/projetos" },
           { label: project.title },
         ]}
-        right={<ModelChip model={project.model} size="sm" />}
       />
       <ProjectInterior
         project={{

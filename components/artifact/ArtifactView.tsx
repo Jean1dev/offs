@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
-import { Button, IconBtn, ModelChip, AgentGlyph } from "@/components/ui";
+import { Button, IconBtn, AgentGlyph } from "@/components/ui";
 import { ArtifactBlock } from "@/components/artifact/ArtifactBlock";
 import { AGENTS, agentById } from "@/lib/catalog";
 import type { ArtifactContent } from "@/lib/artifact-content";
@@ -237,8 +237,6 @@ export function ArtifactView({
                 {agent.name}
               </span>
             )}
-            <span>·</span>
-            <ModelChip model={artifact.model} size="sm" />
             <span>·</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
               <Icon name="clock" size={13} color="var(--text-tertiary)" />

@@ -11,7 +11,6 @@ import {
   Badge,
   RoleTag,
   StatusBadge,
-  ModelChip,
   AgentGlyph,
   SectionLabel,
 } from "@/components/ui";
@@ -486,7 +485,6 @@ function LibraryPanel({ ctx }: { ctx: Ctx }) {
                       {agent?.name ?? a.agentId} · {a.when}
                     </div>
                   </div>
-                  <ModelChip model={a.model} size="sm" showName={false} />
                 </button>
               );
             })}
@@ -693,57 +691,48 @@ function ProjectHeader({
         </h1>
         <HeaderActions project={project} />
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 24,
-          marginTop: 18,
-          padding: "14px 18px",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--radius-md)",
-        }}
-      >
-        {channel && (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-              <span
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 999,
-                  background: "linear-gradient(135deg, var(--rose-200), var(--rose-300))",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "var(--font-display)",
-                  fontStyle: "italic",
-                  fontSize: 14,
-                  color: "var(--rose-700)",
-                }}
-              >
-                {channel.initial}
-              </span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
-                  {channel.name}
-                </div>
-                <div style={{ fontSize: 11.5, color: "var(--text-tertiary)" }}>
-                  {channel.handle}
-                </div>
+      {channel && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 24,
+            marginTop: 18,
+            padding: "14px 18px",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-md)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <span
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 999,
+                background: "linear-gradient(135deg, var(--rose-200), var(--rose-300))",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "var(--font-display)",
+                fontStyle: "italic",
+                fontSize: 14,
+                color: "var(--rose-700)",
+              }}
+            >
+              {channel.initial}
+            </span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+                {channel.name}
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--text-tertiary)" }}>
+                {channel.handle}
               </div>
             </div>
-            <div style={{ width: 1, height: 30, background: "var(--border)" }} />
-          </>
-        )}
-        <div>
-          <SectionLabel style={{ marginBottom: 4, whiteSpace: "nowrap" }}>
-            Modelo do projeto
-          </SectionLabel>
-          <ModelChip model={project.model} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
