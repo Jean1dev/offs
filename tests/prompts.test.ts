@@ -28,4 +28,17 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("ESTRUTURADO");
     expect(prompt).toContain(agent.produces);
   });
+
+  it("usa o prompt oficial do Analista de Canais + regra estruturada", () => {
+    const prompt = buildSystemPrompt(agentById("analista-canais")!);
+    expect(prompt).toContain("ESTRUTURA OBRIGATÓRIA DA RESPOSTA");
+    expect(prompt).toContain("DIRETRIZES PARA EXTRAÇÃO DE DADOS");
+    expect(prompt).toContain("ESTRUTURADO"); // regra de saída estruturada anexada
+  });
+
+  it("usa o prompt oficial do Resumidor de Temas", () => {
+    const prompt = buildSystemPrompt(agentById("resumidor-temas")!);
+    expect(prompt).toContain("Resumo Base");
+    expect(prompt).toContain("fontes confiáveis");
+  });
 });

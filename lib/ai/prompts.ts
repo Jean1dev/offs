@@ -5,6 +5,7 @@
 
 import type { Agent, NarrativeModelId } from "@/lib/catalog";
 import { NARRATIVE_MODELS } from "@/lib/catalog";
+import { AGENT_BASE_PROMPTS } from "@/lib/ai/agent-prompts";
 
 const STRUCTURED_OUTPUT_RULE = `
 Você produz conteúdo ESTRUTURADO, nunca texto bruto. Sua resposta é um objeto com:
@@ -31,23 +32,30 @@ function narrativeFragment(narrative?: NarrativeModelId): string {
   return `\n\nModelo narrativo escolhido: ${model.name} — ${model.blurb}`;
 }
 
-/** Builds the default system prompt for an agent execution. */
-export function buildSystemPrompt(
-  agent: Agent,
-  opts: { narrative?: NarrativeModelId } = {},
-): string {
+/** Core prompt generated from catalog metadata (fallback when there is no official prompt). */
+function generatedCore(agent: Agent): string {
   const roleLine =
     agent.role === "revisor"
       ? "Você é um revisor especializado: analisa criticamente e devolve um laudo com pontos fortes e o que melhorar."
       : "Você é um agente produtor: gera o artefato pedido a partir do contexto fornecido.";
 
-  const parts = [
+  return [
     `Você é "${agent.name}", um agente do Pauta — assistente de roteiros para criadores de YouTube.`,
     roleLine,
     agent.desc,
     `Você deve produzir o artefato: "${agent.produces}".`,
-    STRUCTURED_OUTPUT_RULE,
-  ];
+  ].join("\n\n");
+}
+
+/** Builds the default system prompt for an agent execution. */
+export function buildSystemPrompt(
+  agent: Agent,
+  opts: { narrative?: NarrativeModelId } = {},
+): string {
+  // Official prompt (from the provided GPTs) when available; else generated.
+  const core = AGENT_BASE_PROMPTS[agent.id] ?? generatedCore(agent);
+
+  const parts = [core, STRUCTURED_OUTPUT_RULE];
 
   if (agent.requiresSources) parts.push(ROTEIRISTA_POLICY);
 
