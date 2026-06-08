@@ -23,9 +23,9 @@ O código compila, builda e linta, mas **não foi exercido contra serviços reai
 - [ ] **Índices do MongoDB** — validar criação dos índices (`Artifact` único de versão
       ativa por lineage, índices de `userId`/`projectId`) e comportamento sob concorrência
       de regeneração.
-- [ ] **Cookie de sessão em produção (segurança)** — hoje o nome é fixo `offs.session-token`
-      sem prefixo `__Secure-`/`secure` em https. Aplicar quando `NODE_ENV==='production'`
-      (o `proxy.ts` já aceita ambos os nomes). Ver `auth.ts`.
+- [x] ~~**Cookie de sessão em produção (segurança)**~~ — **feito**: em produção o cookie
+      vira `__Secure-offs.session-token` com `secure: true` (`auth.ts`); o `proxy.ts` aceita
+      ambos os nomes.
 
 ---
 
@@ -41,11 +41,9 @@ Itens do plano que foram simplificados ou ficaram parciais.
       (`lib/storage`) com backend na API interna `POST /v1/s3`; `executeAgentRun` sobe os
       prints e guarda as URLs em `Artifact.inputImages` (exibidas no artefato). Configurar
       `STORAGE_API_URL` no env; se ausente, degrada para inline (sem persistir).
-- [ ] **Hierarquia do modelo de customização (RN06).** O modelo salvo na customização
-      (`AgentCustomization.model`) quase nunca prevalece porque o seletor “por execução”
-      (T03) sempre envia um modelo, e execução > customização. Decidir: (a) deixar como
-      está; (b) inicializar o seletor da T03 com o modelo da customização; (c) permitir
-      “usar o modelo da customização” explicitamente.
+- [x] ~~**Hierarquia do modelo de customização (RN06).**~~ **Resolvido** (opção b): o seletor
+      da T03 agora inicia com o modelo da customização quando existe (`initialModel` no
+      `AgentRunner`), e o nível `global` do usuário passou a ser respeitado em `resolveModel`.
 - [ ] **Reabrir contexto de regeneração.** Ao “Regenerar”, a tela do agente abre limpa
       (o usuário remonta o contexto). Opcional: pré-carregar inputs da geração anterior.
 - [ ] **Toasts/feedback.** Ações como copiar/renomear usam estados inline; o protótipo
@@ -74,16 +72,19 @@ Da spec de negócio (§11). Bloqueiam funcionalidades correlatas.
 
 ## 4. Qualidade e hardening (P2)
 
-- [ ] **Testes automatizados** — não há nenhum (unit/integração/e2e). Mínimo sugerido:
-      testes da lógica de versionamento (`models/Artifact`), montagem de contexto
-      (`lib/agent-run`) e resolução de modelo/customização.
+- [~] **Testes automatizados** — **parcial**: Vitest configurado + testes unitários das
+      funções puras (hierarquia de modelo, prompts/RN07, schema de conteúdo) em `tests/`
+      (`npm run test`). **Falta** integração com DB (versionamento de `Artifact`, montagem
+      de contexto end-to-end) via `mongodb-memory-server` e e2e.
+- [x] ~~**CI**~~ **feito**: GitHub Actions (`.github/workflows/ci.yml`) roda
+      `tsc`/`lint`/`test`/`build` em push/PR.
+- [x] ~~**Tratamento de erro de IA mais rico**~~ **feito (básico)**: `runAgentAction` mapeia
+      401/403 (chave/sem acesso) e 429 (rate limit) para mensagens acionáveis. Refusal/timeout
+      ainda caem no genérico.
+- [~] **Acessibilidade** — **parcial**: `aria-label` nos botões só-ícone (`IconBtn`) e no
+      toggle de tema. **Falta** auditoria completa (foco, contraste, navegação por teclado).
 - [ ] **Security review** — fluxo de auth, server actions (ownership já checado),
       `bodySizeLimit` de 12 MB, ausência de rate limit. Rodar `/security-review`.
-- [ ] **Acessibilidade** — passe de `aria-label`/foco/contraste (há `chrome-devtools-mcp:a11y`).
-      Vários botões-ícone têm `title`, mas falta auditoria.
-- [ ] **CI** — sem pipeline. Adicionar GitHub Actions rodando `tsc`/`build`/`lint` no PR.
-- [ ] **Tratamento de erro de IA mais rico** — hoje retorna mensagem genérica; mapear
-      erros por tipo (rate limit, refusal, chave inválida) para mensagens acionáveis.
 - [ ] **Observabilidade** — sem logging estruturado/telemetria de execuções de agente.
 
 ---
@@ -104,11 +105,17 @@ Explicitamente fora da v1 (spec §10), listados para registro:
 
 ---
 
-## Resumo de prioridade
+## Resumo de prioridade (o que ainda falta)
 
-| Prioridade | Foco |
+| Prioridade | Foco restante |
 |---|---|
-| **P0** | Smoke test real, imagem multimodal por provider, índices Mongo, cookie seguro em prod |
-| **P1** | Streaming na UI, decisões D02–D05, hierarquia de modelo da customização |
-| **P2** | Testes, security review, a11y, CI, erros de IA |
+| **P0** | **Smoke test e2e com credenciais reais** · índices Mongo sob concorrência *(ambos precisam de infra sua)* |
+| **P1** | **Streaming na UI** *(deferido — overlay já cobre F08)* · decisões **D02–D05** *(suas)* · opcionais: regeneração com contexto, toasts, loading states |
+| **P2** | Testes de integração-DB/e2e · security review · a11y completa · observabilidade |
 | **P3** | YouTube API, colaboração, export, mobile, novos agentes |
+
+> **Concluído nesta rodada:** cookie seguro em produção · CI (Actions) · testes unitários
+> (Vitest) · mapeamento básico de erros de IA · modelo da customização no compositor ·
+> aria-labels. **Bloqueado por infra/decisão sua:** smoke test, índices sob carga, D02–D05.
+> **Deferido com justificativa:** streaming na UI (o overlay de progresso já atende F08;
+> token-streaming do objeto estruturado é complexo e arriscaria o fluxo que já funciona).

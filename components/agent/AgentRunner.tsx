@@ -473,12 +473,15 @@ export function AgentRunner({
   artifacts,
   preselectArtifactId,
   regenerateOf,
+  initialModel,
 }: {
   project: { id: string; model: AIModelId };
   agent: Agent;
   artifacts: ArtifactListItem[];
   preselectArtifactId?: string;
   regenerateOf?: string;
+  /** Pre-selected model (e.g. from an agent customization); falls back to project. */
+  initialModel?: AIModelId;
 }) {
   const router = useRouter();
   const dual = !!agent.dualContext;
@@ -501,7 +504,7 @@ export function AgentRunner({
   });
   const [narrative, setNarrative] = useState<NarrativeModelId>("hibrido");
   const [sources, setSources] = useState<string[]>([]);
-  const [model, setModel] = useState<AIModelId>(project.model);
+  const [model, setModel] = useState<AIModelId>(initialModel ?? project.model);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 

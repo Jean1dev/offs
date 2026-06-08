@@ -8,6 +8,8 @@ import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import { getMongoClientPromise } from "@/lib/db/mongo-client";
 import { DEFAULT_AI_MODEL, type AIModelId, type Channel } from "@/lib/types";
 
+const useSecureCookies = process.env.NODE_ENV === "production";
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: MongoDBAdapter(getMongoClientPromise),
   providers: [
@@ -21,8 +23,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   cookies: {
     sessionToken: {
-      name: "offs.session-token",
-      options: { httpOnly: true, sameSite: "lax" as const, path: "/" },
+      // Explicit name so the edge guard (proxy.ts) checks the right cookie;
+      // `__Secure-`/`secure` only in production (https), matching Auth.js defaults.
+      name: `${useSecureCookies ? "__Secure-" : ""}offs.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax" as const,
+        path: "/",
+        secure: useSecureCookies,
+      },
     },
   },
   callbacks: {

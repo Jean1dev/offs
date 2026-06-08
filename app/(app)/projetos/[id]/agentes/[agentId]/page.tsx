@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { Topbar } from "@/components/app/Topbar";
 import { AgentRunner } from "@/components/agent/AgentRunner";
 import { getProjectById, getProjectArtifacts } from "@/lib/projects";
+import { resolveAgentCustomization } from "@/lib/customization";
 import { agentById } from "@/lib/catalog";
 
 export default async function AgentPage({
@@ -20,9 +21,10 @@ export default async function AgentPage({
   const agent = agentById(agentId);
   if (!agent) notFound();
 
-  const [project, artifacts] = await Promise.all([
+  const [project, artifacts, customization] = await Promise.all([
     getProjectById(session.user.id, id),
     getProjectArtifacts(session.user.id, id),
+    resolveAgentCustomization(session.user.id, agentId, id),
   ]);
   if (!project) notFound();
 
@@ -41,6 +43,7 @@ export default async function AgentPage({
         artifacts={artifacts}
         preselectArtifactId={fonte}
         regenerateOf={regenerar}
+        initialModel={customization.model}
       />
     </>
   );

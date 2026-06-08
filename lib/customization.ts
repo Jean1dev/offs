@@ -64,12 +64,14 @@ export async function resolveAgentCustomization(
 ): Promise<{ prompt?: string; model?: AIModelId }> {
   await connectToDatabase();
   const uid = new Types.ObjectId(userId);
-  const proj = await AgentCustomization.findOne({
-    userId: uid,
-    agentId,
-    scope: "projeto",
-    projectId: new Types.ObjectId(projectId),
-  }).lean();
+  const proj = Types.ObjectId.isValid(projectId)
+    ? await AgentCustomization.findOne({
+        userId: uid,
+        agentId,
+        scope: "projeto",
+        projectId: new Types.ObjectId(projectId),
+      }).lean()
+    : null;
   const overlay =
     proj ??
     (await AgentCustomization.findOne({

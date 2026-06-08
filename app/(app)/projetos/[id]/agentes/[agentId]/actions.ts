@@ -25,8 +25,16 @@ export async function runAgentAction(input: AgentRunInput): Promise<RunResult> {
     );
   } catch (e) {
     if (e instanceof AgentRunError) return { error: e.message };
+    // Map common AI provider failures to actionable messages.
+    const status = (e as { statusCode?: number })?.statusCode;
+    if (status === 401 || status === 403) {
+      return { error: "Chave de API inválida ou sem acesso ao modelo selecionado." };
+    }
+    if (status === 429) {
+      return { error: "Limite do provedor de IA atingido. Tente novamente em instantes." };
+    }
     console.error("runAgentAction failed:", e);
-    return { error: "Falha ao executar o agente. Tente novamente." };
+    return { error: "Falha ao executar o agente. Tente de novo ou troque o modelo." };
   }
 
   redirect(`/projetos/${input.projectId}/artefatos/${artifactId}?novo=1`);
