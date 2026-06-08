@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
+import { z } from "zod";
 import { artifactContentSchema } from "@/lib/ai/schema";
+
+describe("artifactContentSchema → JSON Schema", () => {
+  it("usa anyOf (não oneOf) — OpenAI Structured Outputs rejeita oneOf", () => {
+    const json = JSON.stringify(z.toJSONSchema(artifactContentSchema));
+    expect(json).not.toContain("oneOf");
+    expect(json).toContain("anyOf");
+  });
+});
 
 describe("artifactContentSchema", () => {
   it("aceita conteúdo estruturado válido", () => {

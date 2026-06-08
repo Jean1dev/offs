@@ -61,7 +61,10 @@ const scoreBlock = z.object({
   sub: z.string(),
 });
 
-export const artifactBlockSchema = z.discriminatedUnion("t", [
+// NOTE: z.union (→ JSON Schema `anyOf`), not z.discriminatedUnion (→ `oneOf`).
+// OpenAI Structured Outputs rejects `oneOf` ("'oneOf' is not permitted"); `anyOf`
+// is accepted by all three providers. The literal `t` field still disambiguates.
+export const artifactBlockSchema = z.union([
   metricsBlock,
   headingBlock,
   paragraphBlock,
