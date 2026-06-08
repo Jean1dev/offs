@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
-import { agentById } from "@/lib/catalog";
+import { AGENT_BASE_PROMPTS } from "@/lib/ai/agent-prompts";
+import { AGENTS, agentById } from "@/lib/catalog";
 
 describe("buildSystemPrompt", () => {
   it("Roteirista inclui a política editorial (RN07)", () => {
@@ -22,11 +23,16 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("Híbrido");
   });
 
-  it("sempre instrui saída estruturada e o artefato produzido", () => {
-    const agent = agentById("analista-temas")!;
-    const prompt = buildSystemPrompt(agent);
-    expect(prompt).toContain("ESTRUTURADO");
-    expect(prompt).toContain(agent.produces);
+  it("sempre anexa a regra de saída estruturada a todos os agentes", () => {
+    for (const agent of AGENTS) {
+      expect(buildSystemPrompt(agent)).toContain("ESTRUTURADO");
+    }
+  });
+
+  it("todos os agentes do catálogo têm prompt oficial", () => {
+    for (const agent of AGENTS) {
+      expect(AGENT_BASE_PROMPTS[agent.id]).toBeTruthy();
+    }
   });
 
   it("usa o prompt oficial do Analista de Canais + regra estruturada", () => {
