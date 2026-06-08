@@ -286,6 +286,55 @@ export function ArtifactView({
         </div>
       </div>
 
+      {/* source prints */}
+      {artifact.inputImages.length > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          <div
+            style={{
+              fontSize: 10.5,
+              fontWeight: 600,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "var(--text-tertiary)",
+              marginBottom: 10,
+            }}
+          >
+            Prints usados
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+              gap: 10,
+            }}
+          >
+            {artifact.inputImages.map((src, i) => (
+              <a
+                key={i}
+                href={src}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  aspectRatio: "16/10",
+                  borderRadius: "var(--radius-md)",
+                  overflow: "hidden",
+                  border: "1px solid var(--border)",
+                  background: "var(--bg-subtle)",
+                  display: "block",
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={`Print ${i + 1}`}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* body */}
       <div>
         {artifact.content.blocks.map((b, i) => (

@@ -24,6 +24,7 @@ export interface ArtifactDetail {
   version: number;
   status: ArtifactStatus;
   content: ArtifactContent;
+  inputImages: string[];
   when: string;
   versions: ArtifactVersionRef[];
 }
@@ -59,6 +60,7 @@ export async function getArtifactDetail(
     version: art.version,
     status: art.status,
     content: art.content,
+    inputImages: art.inputImages ?? [],
     when: formatRelative(art.updatedAt),
     versions: versions.map((v) => ({
       id: String(v._id),

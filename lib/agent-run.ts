@@ -9,6 +9,7 @@ import { Artifact } from "@/models/Artifact";
 import { runAgent } from "@/lib/ai/execute";
 import { resolveModel } from "@/lib/ai/models";
 import { resolveAgentCustomization } from "@/lib/customization";
+import { getStorage } from "@/lib/storage";
 import { agentById, type Agent, type NarrativeModelId } from "@/lib/catalog";
 import type { AIModelId } from "@/lib/types";
 import type { ArtifactContent } from "@/lib/artifact-content";
@@ -172,6 +173,28 @@ export async function executeAgentRun(
     systemPromptOverride: overlay.prompt,
   });
 
+  // Persist the source prints to storage (RN04) so they survive the run. The model
+  // already received them inline as base64; here we keep durable references. Best
+  // effort: a storage failure must not fail an already-generated artifact.
+  let inputImages: string[] = [];
+  if (effInputs.includes("image") && input.images.length) {
+    const storage = getStorage();
+    if (storage) {
+      try {
+        inputImages = await Promise.all(
+          input.images.map((dataUrl, i) =>
+            storage.uploadDataUrl(dataUrl, {
+              bucket: "offs-prints",
+              filename: `print-${i + 1}.png`,
+            }),
+          ),
+        );
+      } catch (e) {
+        console.error("Falha ao persistir prints no storage:", e);
+      }
+    }
+  }
+
   // Regenerate (RN05): archive the current active version and add the next one,
   // preserving the lineage and the artifact's name. Otherwise create a fresh one.
   let artifact = null;
@@ -186,6 +209,7 @@ export async function executeAgentRun(
         agentId: agent.id,
         model,
         content,
+        inputImages,
       });
     }
   }
@@ -196,6 +220,7 @@ export async function executeAgentRun(
       agentId: agent.id,
       model,
       content,
+      inputImages,
     });
   }
 

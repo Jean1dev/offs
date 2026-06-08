@@ -21,6 +21,8 @@ export interface ArtifactDoc {
   version: number;
   status: ArtifactStatus;
   content: ArtifactContent;
+  /** URLs of source prints persisted to storage (RN04). */
+  inputImages: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +34,7 @@ export interface ArtifactInput {
   agentId: string;
   model: AIModelId;
   content: ArtifactContent;
+  inputImages?: string[];
 }
 
 interface ArtifactModel extends Model<ArtifactDoc> {
@@ -75,6 +78,7 @@ const ArtifactSchema = new Schema<ArtifactDoc, ArtifactModel>(
       summary: { type: String, default: "" },
       blocks: { type: [Schema.Types.Mixed], default: [] },
     },
+    inputImages: { type: [String], default: [] },
   },
   { timestamps: true, versionKey: false },
 );
@@ -99,6 +103,7 @@ ArtifactSchema.statics.createInitial = async function (
     version: 1,
     status: "ativo",
     content: input.content,
+    inputImages: input.inputImages ?? [],
   });
 };
 
@@ -135,6 +140,7 @@ ArtifactSchema.statics.regenerate = async function (
     version: nextVersion,
     status: "ativo",
     content: input.content,
+    inputImages: input.inputImages ?? [],
   });
 };
 

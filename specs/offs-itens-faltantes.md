@@ -17,9 +17,9 @@ O código compila, builda e linta, mas **não foi exercido contra serviços reai
       gerar artefato → usar como input do próximo → regenerar (conferir versão) →
       Roteirista bloqueado sem fontes / liberado com fontes → Analista de Roteiro nos
       dois contextos → customizar agente → dark mode.
-- [ ] **Formato multimodal de imagem por provider** — confirmar que data URLs são aceitas
-      por Anthropic/OpenAI/Google via Vercel AI SDK (`lib/ai/execute.ts`); ajustar para
-      `{ type: "image", image: <bytes|base64> }` se algum provider exigir.
+- [x] ~~**Formato multimodal de imagem por provider**~~ — **confirmado**: o AI SDK aceita
+      data URL/base64 e os 3 providers (Anthropic/OpenAI/Google) suportam base64; URL direta
+      tem nuances por provider, então mantemos **data URL (base64)** no `lib/ai/execute.ts`.
 - [ ] **Índices do MongoDB** — validar criação dos índices (`Artifact` único de versão
       ativa por lineage, índices de `userId`/`projectId`) e comportamento sob concorrência
       de regeneração.
@@ -37,9 +37,10 @@ Itens do plano que foram simplificados ou ficaram parciais.
       (one-shot) com overlay de progresso animado. Já existe `streamAgent` (`streamObject`)
       em `lib/ai/execute.ts`, mas **não está ligado à UI**. Para “gerando ao vivo”, criar
       um route handler de streaming e consumir o `partialObjectStream` no `AgentRunner`.
-- [ ] **Persistência opcional de prints.** Os prints são enviados inline na execução e
-      **não são salvos** (decisão de v1 para evitar storage). Se quiser revisitar inputs,
-      é preciso storage de blob (S3-compatível / Vercel Blob) + referência no artefato.
+- [x] ~~**Persistência opcional de prints.**~~ **Implementado**: abstração de storage
+      (`lib/storage`) com backend na API interna `POST /v1/s3`; `executeAgentRun` sobe os
+      prints e guarda as URLs em `Artifact.inputImages` (exibidas no artefato). Configurar
+      `STORAGE_API_URL` no env; se ausente, degrada para inline (sem persistir).
 - [ ] **Hierarquia do modelo de customização (RN06).** O modelo salvo na customização
       (`AgentCustomization.model`) quase nunca prevalece porque o seletor “por execução”
       (T03) sempre envia um modelo, e execução > customização. Decidir: (a) deixar como
