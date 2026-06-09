@@ -6,6 +6,7 @@
 // telemetria seja avaliado antes do "aceito" do usuário (requisito LGPD).
 
 import type { Analytics } from "firebase/analytics";
+import { readConsent } from "./consent";
 
 // Config pública do Firebase (chaves `NEXT_PUBLIC_*` são expostas ao browser por
 // design — não são segredos; o controle de acesso é feito pelas regras do
@@ -55,11 +56,28 @@ export function loadAnalytics(): Promise<Analytics | null> {
   return analyticsPromise;
 }
 
-/** Registra um evento, mas só se o Analytics já estiver carregado/consentido. */
+/**
+ * Liga/desliga a coleta do SDK. Usado ao revogar consentimento: mesmo com a
+ * instância já em memória, paramos de coletar (LGPD). No-op se não carregado.
+ */
+export async function setCollectionEnabled(enabled: boolean): Promise<void> {
+  if (typeof window === "undefined" || !analyticsPromise) return;
+  const analytics = await analyticsPromise;
+  if (!analytics) return;
+  const { setAnalyticsCollectionEnabled } = await import("firebase/analytics");
+  setAnalyticsCollectionEnabled(analytics, enabled);
+}
+
+/**
+ * Registra um evento. Só envia quando há consentimento ATUAL — revalida a cada
+ * chamada para não vazar eventos após uma revogação (a instância fica em cache
+ * na sessão, então a checagem de consentimento é a barreira real).
+ */
 export async function trackEvent(
   name: string,
   params?: Record<string, unknown>,
 ): Promise<void> {
+  if (readConsent() !== "granted") return;
   const analytics = await loadAnalytics();
   if (!analytics) return;
   const { logEvent } = await import("firebase/analytics");

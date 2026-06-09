@@ -12,5 +12,6 @@ export {
   firebaseConfig,
   isAnalyticsConfigured,
   loadAnalytics,
+  setCollectionEnabled,
   trackEvent,
 } from "./firebase";

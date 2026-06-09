@@ -114,8 +114,19 @@ antes do "Aceitar":
   `import()` dinâmico do SDK e inicializa o Analytics (o chunk só baixa aí).
 - A escolha fica em `localStorage` e pode ser revista/revogada a qualquer momento
   na página **Conta** (`ConsentSettings`) — direito de revogação (LGPD art. 8º §5º).
-- `page_view` é registrado por navegação do App Router; eventos customizados via
-  `trackEvent(name, params)` de `@/lib/analytics`.
+- `trackEvent(name, params)` (de `@/lib/analytics`) revalida o consentimento a
+  cada chamada — não vaza eventos após uma revogação. Ao revogar, a coleta do SDK
+  também é desligada (`setCollectionEnabled(false)`).
+
+Eventos de produto instrumentados:
+
+| Evento | Onde | Parâmetros principais |
+|---|---|---|
+| `page_view` | toda navegação (App Router) | `page_path`, `page_location` |
+| `run_agent` | rodar um agente (`AgentRunner`) | `agent_id`, `agent_name`, `agent_role`, `model`, `regenerate`, `status` |
+| `customize_agent` | salvar customização (`AgentCustomizer`) | `agent_id`, `model`, `scope`, `prompt_changed` |
+| `set_default_model` | salvar preferências (`PreferencesForm`) | `default_model` |
+| `consent_granted` | aceitar analytics (banner ou conta) | `source` |
 
 ## Deploy
 

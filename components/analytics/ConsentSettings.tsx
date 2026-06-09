@@ -9,6 +9,7 @@ import {
   CONSENT_CHANGE_EVENT,
   isAnalyticsConfigured,
   readConsent,
+  trackEvent,
   writeConsent,
   type ConsentState,
 } from "@/lib/analytics";
@@ -91,7 +92,14 @@ export function ConsentSettings() {
         </div>
         <button
           type="button"
-          onClick={() => writeConsent(granted ? "denied" : "granted")}
+          onClick={() => {
+            if (granted) {
+              writeConsent("denied");
+            } else {
+              writeConsent("granted");
+              void trackEvent("consent_granted", { source: "settings" });
+            }
+          }}
           style={{
             padding: "8px 16px",
             fontFamily: "var(--font-body)",

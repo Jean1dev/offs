@@ -15,6 +15,7 @@ import {
   isAnalyticsConfigured,
   loadAnalytics,
   readConsent,
+  setCollectionEnabled,
   trackEvent,
   writeConsent,
   type ConsentState,
@@ -50,9 +51,11 @@ export function ConsentManager() {
     };
   }, []);
 
-  // Carrega o Firebase só após o consentimento explícito.
+  // Carrega o Firebase só após o consentimento explícito; ao revogar, desliga
+  // a coleta do SDK mesmo que a instância já esteja em memória.
   useEffect(() => {
     if (consent === "granted") void loadAnalytics();
+    else if (consent === "denied") void setCollectionEnabled(false);
   }, [consent]);
 
   // page_view por navegação — só quando consentido e carregado.
@@ -72,7 +75,10 @@ export function ConsentManager() {
   if (consent === null) {
     return (
       <ConsentBanner
-        onAccept={() => writeConsent("granted")}
+        onAccept={() => {
+          writeConsent("granted");
+          void trackEvent("consent_granted", { source: "banner" });
+        }}
         onReject={() => writeConsent("denied")}
       />
     );

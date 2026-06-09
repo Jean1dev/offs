@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icon";
 import { Button, Badge, Card, SectionLabel } from "@/components/ui";
 import { MODELS, type Agent } from "@/lib/catalog";
+import { trackEvent } from "@/lib/analytics";
 import type { AIModelId } from "@/lib/types";
 import type { EditOverlay, CustomizationScope } from "@/lib/customization";
 import {
@@ -232,7 +233,21 @@ export function AgentCustomizer({
             </div>
           </Card>
 
-          <Button full size="lg" icon="check" disabled={!dirty}>
+          <Button
+            full
+            size="lg"
+            icon="check"
+            disabled={!dirty}
+            onClick={() =>
+              void trackEvent("customize_agent", {
+                agent_id: agent.id,
+                agent_name: agent.name,
+                model,
+                scope,
+                prompt_changed: prompt !== basePrompt,
+              })
+            }
+          >
             Salvar versão
           </Button>
 
