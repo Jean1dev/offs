@@ -170,27 +170,44 @@ export async function executeAgentRun(
 
   // Reserva antecipada de créditos (spec §4): debita ANTES da LLM e só confirma
   // no sucesso. Saldo insuficiente lança InsufficientCreditsError (registrada
-  // como `bloqueado_credito` na própria reserveCredits → getBalanceView).
+  // como `bloqueado_credito`). O registro de consumo é best-effort: nunca pode
+  // mascarar o erro original (ex.: trocar InsufficientCreditsError por um erro
+  // de escrita do Mongo faria a UI mostrar a mensagem técnica genérica).
   const cost = agentCost(agent.id);
+  const safeRecord = async (
+    status: "sucesso" | "erro_llm" | "bloqueado_credito",
+    tokensInput: number,
+    tokensOutput: number,
+    creditosDebitados: number,
+  ) => {
+    try {
+      await recordUsage({
+        userId,
+        agenteId: agent.id,
+        projetoId: project._id,
+        modeloIa: model,
+        tokensInput,
+        tokensOutput,
+        creditosDebitados,
+        status,
+      });
+    } catch (e) {
+      console.error("Falha ao registrar consumo de créditos:", e);
+    }
+  };
+
   try {
     await reserveCredits(userId, cost);
   } catch (e) {
-    await recordUsage({
-      userId,
-      agenteId: agent.id,
-      projetoId: project._id,
-      modeloIa: model,
-      tokensInput: 0,
-      tokensOutput: 0,
-      creditosDebitados: 0,
-      status: "bloqueado_credito",
-    });
+    await safeRecord("bloqueado_credito", 0, 0, 0);
     throw e;
   }
 
-  // A partir daqui os créditos estão reservados: qualquer falha técnica devolve
-  // a reserva (RN-C03) para o usuário não perder créditos por erro da LLM.
-  let content: ArtifactContent;
+  // A partir daqui os créditos estão reservados. Pesquisa, geração E persistência
+  // ficam sob o mesmo guarda: qualquer falha técnica (LLM, storage, gravação do
+  // artefato) devolve a reserva (RN-C03) para o usuário não perder créditos por
+  // uma execução que não entregou artefato.
+  let artifact;
   let usage: { inputTokens: number; outputTokens: number };
   try {
     // Web-search research step (pesquisa real) for agents that need it, prepended
@@ -211,91 +228,73 @@ export async function executeAgentRun(
       images: effInputs.includes("image") ? input.images : undefined,
       systemPromptOverride: overlay.prompt,
     });
-    content = result.content;
+    const content = result.content;
     usage = result.usage;
-  } catch (e) {
-    await releaseCredits(userId, cost);
-    await recordUsage({
-      userId,
-      agenteId: agent.id,
-      projetoId: project._id,
-      modeloIa: model,
-      tokensInput: 0,
-      tokensOutput: 0,
-      creditosDebitados: 0,
-      status: "erro_llm",
-    });
-    throw e;
-  }
 
-  // Persist the source prints to storage (RN04) so they survive the run. The model
-  // already received them inline as base64; here we keep durable references. Best
-  // effort: a storage failure must not fail an already-generated artifact.
-  let inputImages: string[] = [];
-  if (effInputs.includes("image") && input.images.length) {
-    const storage = getStorage();
-    if (storage) {
-      try {
-        inputImages = await Promise.all(
-          input.images.map((dataUrl, i) =>
-            storage.uploadDataUrl(dataUrl, {
-              bucket: "offs-prints",
-              filename: `print-${i + 1}.png`,
-            }),
-          ),
-        );
-      } catch (e) {
-        console.error("Falha ao persistir prints no storage:", e);
+    // Persist the source prints to storage (RN04) so they survive the run. The model
+    // already received them inline as base64; here we keep durable references. Best
+    // effort: a storage failure must not fail an already-generated artifact.
+    let inputImages: string[] = [];
+    if (effInputs.includes("image") && input.images.length) {
+      const storage = getStorage();
+      if (storage) {
+        try {
+          inputImages = await Promise.all(
+            input.images.map((dataUrl, i) =>
+              storage.uploadDataUrl(dataUrl, {
+                bucket: "offs-prints",
+                filename: `print-${i + 1}.png`,
+              }),
+            ),
+          );
+        } catch (e) {
+          console.error("Falha ao persistir prints no storage:", e);
+        }
       }
     }
-  }
 
-  // Regenerate (RN05): archive the current active version and add the next one,
-  // preserving the lineage and the artifact's name. Otherwise create a fresh one.
-  let artifact = null;
-  if (input.regenerateOf && Types.ObjectId.isValid(input.regenerateOf)) {
-    const orig = await Artifact.findOne({
-      _id: input.regenerateOf,
-      projectId: project._id,
-    });
-    if (orig) {
-      artifact = await Artifact.regenerate(orig.lineageId, {
-        name: orig.name,
+    // Regenerate (RN05): archive the current active version and add the next one,
+    // preserving the lineage and the artifact's name. Otherwise create a fresh one.
+    artifact = null;
+    if (input.regenerateOf && Types.ObjectId.isValid(input.regenerateOf)) {
+      const orig = await Artifact.findOne({
+        _id: input.regenerateOf,
+        projectId: project._id,
+      });
+      if (orig) {
+        artifact = await Artifact.regenerate(orig.lineageId, {
+          name: orig.name,
+          agentId: agent.id,
+          model,
+          content,
+          inputImages,
+        });
+      }
+    }
+    if (!artifact) {
+      artifact = await Artifact.createInitial({
+        projectId: project._id,
+        name: produces,
         agentId: agent.id,
         model,
         content,
         inputImages,
       });
     }
-  }
-  if (!artifact) {
-    artifact = await Artifact.createInitial({
-      projectId: project._id,
-      name: produces,
-      agentId: agent.id,
-      model,
-      content,
-      inputImages,
-    });
-  }
 
-  await Project.updateOne(
-    { _id: project._id, userId: uid },
-    { $addToSet: { done: agent.id } },
-  );
+    await Project.updateOne(
+      { _id: project._id, userId: uid },
+      { $addToSet: { done: agent.id } },
+    );
+  } catch (e) {
+    await releaseCredits(userId, cost);
+    await safeRecord("erro_llm", 0, 0, 0);
+    throw e;
+  }
 
   // Sucesso: os créditos já foram debitados na reserva. Registra o consumo com
   // os tokens reais para informar o billing futuro (spec §7/§8).
-  await recordUsage({
-    userId,
-    agenteId: agent.id,
-    projetoId: project._id,
-    modeloIa: model,
-    tokensInput: usage.inputTokens,
-    tokensOutput: usage.outputTokens,
-    creditosDebitados: cost,
-    status: "sucesso",
-  });
+  await safeRecord("sucesso", usage.inputTokens, usage.outputTokens, cost);
 
   return String(artifact._id);
 }

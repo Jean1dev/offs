@@ -67,20 +67,27 @@ CreditBalanceSchema.statics.ensureCycle = async function (
 ): Promise<void> {
   const now = new Date();
   // Cria o saldo na primeira execução, já iniciando o ciclo rolling (RN-C05).
-  await this.updateOne(
-    { userId },
-    {
-      $setOnInsert: {
-        userId,
-        plano,
-        creditosDiarios: dailyCredits,
-        creditosRestantes: dailyCredits,
-        ultimoReset: now,
-        proximoReset: new Date(now.getTime() + CYCLE_MS),
+  // Duas primeiras execuções concorrentes podem disputar o upsert: o índice
+  // único em userId faz o perdedor lançar E11000. O doc já existe nesse caso,
+  // então tratamos como sucesso — o reserve seguinte opera sobre ele.
+  try {
+    await this.updateOne(
+      { userId },
+      {
+        $setOnInsert: {
+          userId,
+          plano,
+          creditosDiarios: dailyCredits,
+          creditosRestantes: dailyCredits,
+          ultimoReset: now,
+          proximoReset: new Date(now.getTime() + CYCLE_MS),
+        },
       },
-    },
-    { upsert: true },
-  );
+      { upsert: true },
+    );
+  } catch (e) {
+    if ((e as { code?: number }).code !== 11000) throw e;
+  }
   // Ciclo expirado → renova o saldo cheio (RN-C07: não acumula).
   await this.updateOne(
     { userId, proximoReset: { $lte: now } },
@@ -114,14 +121,21 @@ CreditBalanceSchema.statics.release = async function (
   userId: Types.ObjectId | string,
   cost: number,
 ): Promise<void> {
-  const bal = await this.findOne({ userId });
-  if (!bal) return;
-  // Devolve sem ultrapassar o teto diário (RN-C06).
-  bal.creditosRestantes = Math.min(
-    bal.creditosDiarios,
-    bal.creditosRestantes + cost,
-  );
-  await bal.save();
+  // Devolução atômica (pipeline update): soma e trava no teto diário num único
+  // documento (RN-C06). Evita o lost-update de um read-modify-write quando duas
+  // liberações concorrem — simétrico ao $inc atômico do reserve.
+  await this.updateOne({ userId }, [
+    {
+      $set: {
+        creditosRestantes: {
+          $min: [
+            "$creditosDiarios",
+            { $add: ["$creditosRestantes", cost] },
+          ],
+        },
+      },
+    },
+  ]);
 };
 
 export const CreditBalance: CreditBalanceModel =

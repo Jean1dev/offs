@@ -3,6 +3,7 @@
 // as operações que o fluxo de execução (lib/agent-run.ts) e a UI consomem.
 // O frontend nunca decide o limite — só reflete o BalanceView retornado daqui.
 
+import { cache } from "react";
 import { Types } from "mongoose";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { CreditBalance } from "@/models/CreditBalance";
@@ -34,32 +35,37 @@ export class InsufficientCreditsError extends Error {
 /**
  * Saldo efetivo para exibição (spec §6.1). Leitura pura: se o ciclo expirou,
  * mostra o saldo cheio sem gravar — o reset real acontece na próxima reserva.
+ * Memoizado por requisição (React `cache`) para o layout e a página do agente
+ * compartilharem uma única leitura por render.
  */
-export async function getBalanceView(userId: string): Promise<BalanceView> {
-  await connectToDatabase();
-  const daily = dailyCredits();
-  const bal = await CreditBalance.findOne({
-    userId: new Types.ObjectId(userId),
-  }).lean();
+export const getBalanceView = cache(
+  async (userId: string): Promise<BalanceView> => {
+    await connectToDatabase();
+    const daily = dailyCredits();
+    const bal = await CreditBalance.findOne({
+      userId: new Types.ObjectId(userId),
+    }).lean();
 
-  if (!bal) {
+    if (!bal) {
+      return {
+        plano: DEFAULT_PLANO,
+        creditosRestantes: daily,
+        creditosDiarios: daily,
+        proximoReset: null,
+      };
+    }
+
+    const now = Date.now();
+    const expired = bal.proximoReset.getTime() <= now;
+    // No ciclo expirado, mostra o total novo (daily); senão, o que está gravado.
     return {
-      plano: DEFAULT_PLANO,
-      creditosRestantes: daily,
-      creditosDiarios: daily,
-      proximoReset: null,
+      plano: bal.plano,
+      creditosRestantes: expired ? daily : bal.creditosRestantes,
+      creditosDiarios: expired ? daily : bal.creditosDiarios,
+      proximoReset: expired ? null : bal.proximoReset.getTime(),
     };
-  }
-
-  const now = Date.now();
-  const expired = bal.proximoReset.getTime() <= now;
-  return {
-    plano: bal.plano,
-    creditosRestantes: expired ? daily : bal.creditosRestantes,
-    creditosDiarios: daily,
-    proximoReset: expired ? null : bal.proximoReset.getTime(),
-  };
-}
+  },
+);
 
 /**
  * Reserva créditos antes da chamada à LLM (spec §4). Aplica o reset rolling e
