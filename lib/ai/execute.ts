@@ -26,6 +26,17 @@ export interface RunAgentInput {
   images?: string[];
 }
 
+/** Tokens consumidos na execução — alimentam o registro de consumo (créditos §7). */
+export interface RunUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface RunAgentResult {
+  content: ArtifactContent;
+  usage: RunUsage;
+}
+
 function systemFor(input: RunAgentInput): string {
   const override = input.systemPromptOverride?.trim();
   if (override) return override;
@@ -55,14 +66,20 @@ function callArgs(input: RunAgentInput) {
   return { system, prompt: input.context };
 }
 
-/** One-shot structured generation. Returns the finished artifact content. */
-export async function runAgent(input: RunAgentInput): Promise<ArtifactContent> {
-  const { object } = await generateObject({
+/** One-shot structured generation. Returns the artifact content + token usage. */
+export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
+  const { object, usage } = await generateObject({
     model: getLanguageModel(input.model),
     schema: artifactContentSchema,
     ...callArgs(input),
   });
-  return object as ArtifactContent;
+  return {
+    content: object as ArtifactContent,
+    usage: {
+      inputTokens: usage?.inputTokens ?? 0,
+      outputTokens: usage?.outputTokens ?? 0,
+    },
+  };
 }
 
 /** Streaming structured generation — for live "generating…" UI. */

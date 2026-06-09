@@ -11,6 +11,12 @@ import { resolveModel } from "@/lib/ai/models";
 import { resolveAgentCustomization } from "@/lib/customization";
 import { researchTopic } from "@/lib/ai/research";
 import { getStorage } from "@/lib/storage";
+import {
+  reserveCredits,
+  releaseCredits,
+  recordUsage,
+} from "@/lib/credit-balance";
+import { agentCost } from "@/lib/credits";
 import { agentById, type Agent, type NarrativeModelId } from "@/lib/catalog";
 import type { AIModelId } from "@/lib/types";
 import type { ArtifactContent } from "@/lib/artifact-content";
@@ -162,80 +168,133 @@ export async function executeAgentRun(
     global: globalModel,
   });
 
-  // Web-search research step (pesquisa real) for agents that need it, prepended
-  // to the context as factual base. Best effort: failure degrades gracefully.
-  let finalContext = context;
-  if (agent.webSearch) {
-    const research = await researchTopic(model, context);
-    if (research) {
-      finalContext = `Pesquisa na web (base factual — cite as fontes encontradas com as URLs):\n${research}\n\n${context}`;
+  // Reserva antecipada de créditos (spec §4): debita ANTES da LLM e só confirma
+  // no sucesso. Saldo insuficiente lança InsufficientCreditsError (registrada
+  // como `bloqueado_credito`). O registro de consumo é best-effort: nunca pode
+  // mascarar o erro original (ex.: trocar InsufficientCreditsError por um erro
+  // de escrita do Mongo faria a UI mostrar a mensagem técnica genérica).
+  const cost = agentCost(agent.id);
+  const safeRecord = async (
+    status: "sucesso" | "erro_llm" | "bloqueado_credito",
+    tokensInput: number,
+    tokensOutput: number,
+    creditosDebitados: number,
+  ) => {
+    try {
+      await recordUsage({
+        userId,
+        agenteId: agent.id,
+        projetoId: project._id,
+        modeloIa: model,
+        tokensInput,
+        tokensOutput,
+        creditosDebitados,
+        status,
+      });
+    } catch (e) {
+      console.error("Falha ao registrar consumo de créditos:", e);
     }
+  };
+
+  try {
+    await reserveCredits(userId, cost);
+  } catch (e) {
+    await safeRecord("bloqueado_credito", 0, 0, 0);
+    throw e;
   }
 
-  const content = await runAgent({
-    agent: effectiveAgent,
-    model,
-    context: finalContext,
-    narrative: agent.narrative ? input.narrative : undefined,
-    images: effInputs.includes("image") ? input.images : undefined,
-    systemPromptOverride: overlay.prompt,
-  });
-
-  // Persist the source prints to storage (RN04) so they survive the run. The model
-  // already received them inline as base64; here we keep durable references. Best
-  // effort: a storage failure must not fail an already-generated artifact.
-  let inputImages: string[] = [];
-  if (effInputs.includes("image") && input.images.length) {
-    const storage = getStorage();
-    if (storage) {
-      try {
-        inputImages = await Promise.all(
-          input.images.map((dataUrl, i) =>
-            storage.uploadDataUrl(dataUrl, {
-              bucket: "offs-prints",
-              filename: `print-${i + 1}.png`,
-            }),
-          ),
-        );
-      } catch (e) {
-        console.error("Falha ao persistir prints no storage:", e);
+  // A partir daqui os créditos estão reservados. Pesquisa, geração E persistência
+  // ficam sob o mesmo guarda: qualquer falha técnica (LLM, storage, gravação do
+  // artefato) devolve a reserva (RN-C03) para o usuário não perder créditos por
+  // uma execução que não entregou artefato.
+  let artifact;
+  let usage: { inputTokens: number; outputTokens: number };
+  try {
+    // Web-search research step (pesquisa real) for agents that need it, prepended
+    // to the context as factual base. Best effort: failure degrades gracefully.
+    let finalContext = context;
+    if (agent.webSearch) {
+      const research = await researchTopic(model, context);
+      if (research) {
+        finalContext = `Pesquisa na web (base factual — cite as fontes encontradas com as URLs):\n${research}\n\n${context}`;
       }
     }
-  }
 
-  // Regenerate (RN05): archive the current active version and add the next one,
-  // preserving the lineage and the artifact's name. Otherwise create a fresh one.
-  let artifact = null;
-  if (input.regenerateOf && Types.ObjectId.isValid(input.regenerateOf)) {
-    const orig = await Artifact.findOne({
-      _id: input.regenerateOf,
-      projectId: project._id,
+    const result = await runAgent({
+      agent: effectiveAgent,
+      model,
+      context: finalContext,
+      narrative: agent.narrative ? input.narrative : undefined,
+      images: effInputs.includes("image") ? input.images : undefined,
+      systemPromptOverride: overlay.prompt,
     });
-    if (orig) {
-      artifact = await Artifact.regenerate(orig.lineageId, {
-        name: orig.name,
+    const content = result.content;
+    usage = result.usage;
+
+    // Persist the source prints to storage (RN04) so they survive the run. The model
+    // already received them inline as base64; here we keep durable references. Best
+    // effort: a storage failure must not fail an already-generated artifact.
+    let inputImages: string[] = [];
+    if (effInputs.includes("image") && input.images.length) {
+      const storage = getStorage();
+      if (storage) {
+        try {
+          inputImages = await Promise.all(
+            input.images.map((dataUrl, i) =>
+              storage.uploadDataUrl(dataUrl, {
+                bucket: "offs-prints",
+                filename: `print-${i + 1}.png`,
+              }),
+            ),
+          );
+        } catch (e) {
+          console.error("Falha ao persistir prints no storage:", e);
+        }
+      }
+    }
+
+    // Regenerate (RN05): archive the current active version and add the next one,
+    // preserving the lineage and the artifact's name. Otherwise create a fresh one.
+    artifact = null;
+    if (input.regenerateOf && Types.ObjectId.isValid(input.regenerateOf)) {
+      const orig = await Artifact.findOne({
+        _id: input.regenerateOf,
+        projectId: project._id,
+      });
+      if (orig) {
+        artifact = await Artifact.regenerate(orig.lineageId, {
+          name: orig.name,
+          agentId: agent.id,
+          model,
+          content,
+          inputImages,
+        });
+      }
+    }
+    if (!artifact) {
+      artifact = await Artifact.createInitial({
+        projectId: project._id,
+        name: produces,
         agentId: agent.id,
         model,
         content,
         inputImages,
       });
     }
-  }
-  if (!artifact) {
-    artifact = await Artifact.createInitial({
-      projectId: project._id,
-      name: produces,
-      agentId: agent.id,
-      model,
-      content,
-      inputImages,
-    });
+
+    await Project.updateOne(
+      { _id: project._id, userId: uid },
+      { $addToSet: { done: agent.id } },
+    );
+  } catch (e) {
+    await releaseCredits(userId, cost);
+    await safeRecord("erro_llm", 0, 0, 0);
+    throw e;
   }
 
-  await Project.updateOne(
-    { _id: project._id, userId: uid },
-    { $addToSet: { done: agent.id } },
-  );
+  // Sucesso: os créditos já foram debitados na reserva. Registra o consumo com
+  // os tokens reais para informar o billing futuro (spec §7/§8).
+  await safeRecord("sucesso", usage.inputTokens, usage.outputTokens, cost);
 
   return String(artifact._id);
 }
