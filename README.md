@@ -52,6 +52,20 @@ um **artefato versionado**.
    `ANTHROPIC_MODEL` (default `claude-opus-4-8`), `OPENAI_MODEL` (`gpt-4o`),
    `GOOGLE_MODEL` (`gemini-2.5-pro`).
 
+   **Analytics (opcional).** Para habilitar o Firebase Analytics, preencha as
+   chaves públicas abaixo (expostas ao browser por design). Sem elas, o banner
+   de consentimento e o tracking ficam desligados.
+
+   ```
+   NEXT_PUBLIC_FIREBASE_API_KEY=...
+   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+   NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+   NEXT_PUBLIC_FIREBASE_APP_ID=...
+   NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=...
+   ```
+
 ## Rodando
 
 ```bash
@@ -79,12 +93,41 @@ proxy.ts                 # guard de rotas protegidas (edge)
 components/              # UI (Icon, átomos, telas)
 lib/
   ai/                    # registry de modelos, prompts, schema, execução
+  analytics/             # consentimento LGPD + Firebase Analytics sob demanda
   catalog.ts             # catálogo de agentes + taxonomias
   db/                    # conexões Mongoose + MongoClient
   projects.ts artifacts.ts customization.ts agent-run.ts
 models/                  # schemas Mongoose (User, Project, Artifact, AgentCustomization)
 design/                  # protótipo de referência (não faz parte do build)
 ```
+
+## Analytics e LGPD
+
+O Firebase Analytics é carregado **somente após consentimento explícito** do
+usuário, conforme a LGPD (Lei 13.709/2018). Nenhum script do Firebase é avaliado
+antes do "Aceitar":
+
+- O padrão é **opt-in**: sem decisão registrada, nada é rastreado.
+- O banner de consentimento (`components/analytics/ConsentManager.tsx`) só aparece
+  quando há config de Firebase (`NEXT_PUBLIC_FIREBASE_*`) e ainda não há decisão.
+- Só quando o consentimento é `granted` é que `lib/analytics/firebase.ts` faz o
+  `import()` dinâmico do SDK e inicializa o Analytics (o chunk só baixa aí).
+- A escolha fica em `localStorage` e pode ser revista/revogada a qualquer momento
+  na página **Conta** (`ConsentSettings`) — direito de revogação (LGPD art. 8º §5º).
+- `trackEvent(name, params)` (de `@/lib/analytics`) revalida o consentimento a
+  cada chamada — não vaza eventos após uma revogação. Ao revogar, a coleta do SDK
+  também é desligada (`setCollectionEnabled(false)`).
+
+Eventos de produto instrumentados:
+
+| Evento | Onde | Parâmetros principais |
+|---|---|---|
+| `page_view` | toda navegação (App Router) | `page_path`, `page_location` |
+| `run_agent` | rodar um agente (`AgentRunner`) | `agent_id`, `agent_name`, `agent_role`, `model`, `regenerate`, `context_mode` |
+| `run_agent_error` | falha na execução (`AgentRunner`) | `agent_id`, `agent_name`, `model` |
+| `customize_agent` | salvar customização (`AgentCustomizer`) | `agent_id`, `model`, `scope`, `prompt_changed` |
+| `set_default_model` | salvar preferências (`PreferencesForm`) | `default_model` |
+| `consent_granted` | aceitar analytics (banner ou conta) | `source` |
 
 ## Deploy
 

@@ -27,6 +27,7 @@ import {
 import type { AIModelId } from "@/lib/types";
 import type { ArtifactListItem } from "@/lib/projects";
 import { formatResetCountdown, type BalanceView } from "@/lib/credits";
+import { trackEvent } from "@/lib/analytics";
 import { runAgentAction } from "@/app/(app)/projetos/[id]/agentes/[agentId]/actions";
 
 const fieldInput: React.CSSProperties = {
@@ -530,6 +531,21 @@ export function AgentRunner({
     setConfirming(false);
     setError(null);
     startTransition(async () => {
+      // Telemetria de produto (só dispara com consentimento): qual agente, qual
+      // modelo e em que contexto as pessoas estão rodando. Disparamos ANTES do
+      // await porque runAgentAction redireciona no sucesso (lança NEXT_REDIRECT),
+      // então qualquer código após o await só roda no caminho de erro. A navegação
+      // do App Router é client-side (sem unload), então este evento completa.
+      void trackEvent("run_agent", {
+        agent_id: agent.id,
+        agent_name: agent.name,
+        agent_role: agent.role,
+        agent_category: agent.cat,
+        model,
+        regenerate: Boolean(regenerateOf),
+        context_mode: ctxMode ?? undefined,
+        narrative: agent.narrative ? narrative : undefined,
+      });
       const res = await runAgentAction({
         projectId: project.id,
         agentId: agent.id,
@@ -542,7 +558,16 @@ export function AgentRunner({
         images: images.map((im) => im.url),
         regenerateOf,
       });
-      if (res?.error) setError(res.error);
+      // Só alcançável quando há erro (no sucesso houve redirect). Registra a falha
+      // separadamente para medir taxa de erro por agente/modelo.
+      if (res?.error) {
+        void trackEvent("run_agent_error", {
+          agent_id: agent.id,
+          agent_name: agent.name,
+          model,
+        });
+        setError(res.error);
+      }
     });
   };
 

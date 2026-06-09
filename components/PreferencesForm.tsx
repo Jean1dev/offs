@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import {
   updatePreferences,
   type PreferencesState,
 } from "@/app/conta/actions";
 import { type AIModelId, type Channel } from "@/lib/types";
 import { MODELS } from "@/lib/catalog";
+import { trackEvent } from "@/lib/analytics";
 import { SectionLabel } from "@/components/ui";
 
 const fieldStyle: React.CSSProperties = {
@@ -42,6 +43,18 @@ export function PreferencesForm({
     FormData
   >(updatePreferences, { ok: false, message: "" });
 
+  const modelRef = useRef<HTMLSelectElement>(null);
+
+  // Telemetria de produto (só com consentimento): qual modelo as pessoas
+  // definem como padrão. Dispara só em salvamento bem-sucedido.
+  useEffect(() => {
+    if (state.ok) {
+      void trackEvent("set_default_model", {
+        default_model: modelRef.current?.value,
+      });
+    }
+  }, [state]);
+
   return (
     <form
       action={formAction}
@@ -55,6 +68,7 @@ export function PreferencesForm({
         <select
           id="defaultModel"
           name="defaultModel"
+          ref={modelRef}
           defaultValue={initialModel}
           style={fieldStyle}
         >
