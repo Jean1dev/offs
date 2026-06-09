@@ -248,6 +248,42 @@ export function Sidebar({
         <CreditMeter balance={credits} />
       </div>
 
+      <div style={{ marginTop: 8 }}>
+        <a
+          href="https://calendly.com/jeanlucafp/consultoria"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 10px",
+            borderRadius: 8,
+            border: "1px solid var(--border)",
+            color: "var(--text-secondary)",
+            fontSize: 13,
+            fontFamily: "var(--font-body)",
+            textDecoration: "none",
+            transition: "background 0.15s, color 0.15s",
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLAnchorElement).style.background = "var(--surface-hover, rgba(0,0,0,0.04))";
+            (e.currentTarget as HTMLAnchorElement).style.color = "var(--text-primary)";
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLAnchorElement).style.background = "";
+            (e.currentTarget as HTMLAnchorElement).style.color = "var(--text-secondary)";
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          Suporte &amp; Informações
+        </a>
+      </div>
+
       <div
         style={{
           borderTop: "1px solid var(--border)",

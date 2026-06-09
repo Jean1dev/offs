@@ -203,6 +203,24 @@
 .ctaAction .btnPrimary:hover { background: var(--rose-400); }
 .ctaFine { font-size: 12.5px; color: var(--neutral-500); margin-top: 18px; }
 
+/* ── open source ── */
+.openSource { padding: 48px 0; }
+.osCard {
+  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 28px 32px;
+}
+.osIcon {
+  width: 52px; height: 52px; border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent); display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.osText { flex: 1; min-width: 200px; }
+.osText h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px; }
+.osText p { font-size: 14px; color: var(--text-secondary); margin: 0; }
+.osActions { display: flex; gap: 12px; flex-wrap: wrap; }
+
 /* ── footer ── */
 .footer { border-top: 1px solid var(--border); padding: 40px 0; }
 .footInner { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
