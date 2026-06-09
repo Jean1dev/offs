@@ -52,10 +52,18 @@ export function ConsentManager() {
   }, []);
 
   // Carrega o Firebase só após o consentimento explícito; ao revogar, desliga
-  // a coleta do SDK mesmo que a instância já esteja em memória.
+  // a coleta do SDK mesmo que a instância já esteja em memória. Ao reconceder,
+  // religa explicitamente — loadAnalytics() reaproveita a instância em cache e
+  // não reativaria a coleta sozinho (ficaria desligada o resto da sessão).
   useEffect(() => {
-    if (consent === "granted") void loadAnalytics();
-    else if (consent === "denied") void setCollectionEnabled(false);
+    if (consent === "granted") {
+      void (async () => {
+        await loadAnalytics();
+        await setCollectionEnabled(true);
+      })();
+    } else if (consent === "denied") {
+      void setCollectionEnabled(false);
+    }
   }, [consent]);
 
   // page_view por navegação — só quando consentido e carregado.

@@ -123,7 +123,8 @@ Eventos de produto instrumentados:
 | Evento | Onde | Parâmetros principais |
 |---|---|---|
 | `page_view` | toda navegação (App Router) | `page_path`, `page_location` |
-| `run_agent` | rodar um agente (`AgentRunner`) | `agent_id`, `agent_name`, `agent_role`, `model`, `regenerate`, `status` |
+| `run_agent` | rodar um agente (`AgentRunner`) | `agent_id`, `agent_name`, `agent_role`, `model`, `regenerate`, `context_mode` |
+| `run_agent_error` | falha na execução (`AgentRunner`) | `agent_id`, `agent_name`, `model` |
 | `customize_agent` | salvar customização (`AgentCustomizer`) | `agent_id`, `model`, `scope`, `prompt_changed` |
 | `set_default_model` | salvar preferências (`PreferencesForm`) | `default_model` |
 | `consent_granted` | aceitar analytics (banner ou conta) | `source` |

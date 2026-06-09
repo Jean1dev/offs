@@ -233,6 +233,12 @@ export function AgentCustomizer({
             </div>
           </Card>
 
+          {/* Telemetria no clique do botão de salvar (que é o submit do form):
+              saveCustomizationAction redireciona sempre no sucesso, então não há
+              callback de sucesso observável no cliente (o padrão state.ok do
+              PreferencesForm não se aplica a action que redireciona). O clique no
+              botão de salvar é o gatilho do save; o evento dispara antes da
+              navegação (analytics já pré-carregado no consentimento). */}
           <Button
             full
             size="lg"
