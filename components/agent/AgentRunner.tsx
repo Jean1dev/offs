@@ -27,6 +27,7 @@ import {
 import type { AIModelId } from "@/lib/types";
 import type { ArtifactListItem } from "@/lib/projects";
 import { formatResetCountdown, type BalanceView } from "@/lib/credits";
+import { trackEvent } from "@/lib/analytics";
 import { runAgentAction } from "@/app/(app)/projetos/[id]/agentes/[agentId]/actions";
 
 const fieldInput: React.CSSProperties = {
@@ -541,6 +542,19 @@ export function AgentRunner({
         selectedArtifactIds: selArts,
         images: images.map((im) => im.url),
         regenerateOf,
+      });
+      // Telemetria de produto (só dispara com consentimento): qual agente, qual
+      // modelo e em que contexto as pessoas estão rodando.
+      void trackEvent("run_agent", {
+        agent_id: agent.id,
+        agent_name: agent.name,
+        agent_role: agent.role,
+        agent_category: agent.cat,
+        model,
+        regenerate: Boolean(regenerateOf),
+        context_mode: ctxMode ?? undefined,
+        narrative: agent.narrative ? narrative : undefined,
+        status: res?.error ? "error" : "success",
       });
       if (res?.error) setError(res.error);
     });
