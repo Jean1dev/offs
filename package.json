@@ -17,6 +17,7 @@
     "@fontsource/cormorant-garamond": "^5.2.11",
     "@fontsource/dm-sans": "^5.2.8",
     "ai": "^6.0.197",
+    "firebase": "^12.14.0",
     "mongodb": "^6.21.0",
     "mongoose": "^9.6.3",
     "next": "16.2.7",

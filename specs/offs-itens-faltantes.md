@@ -88,7 +88,10 @@ Da spec de negócio (§11). Bloqueiam funcionalidades correlatas.
       toggle de tema. **Falta** auditoria completa (foco, contraste, navegação por teclado).
 - [ ] **Security review** — fluxo de auth, server actions (ownership já checado),
       `bodySizeLimit` de 12 MB, ausência de rate limit. Rodar `/security-review`.
-- [ ] **Observabilidade** — sem logging estruturado/telemetria de execuções de agente.
+- [~] **Observabilidade** — **parcial**: Firebase Analytics com consentimento LGPD
+      (opt-in; `lib/analytics` + `ConsentManager`) rastreia `page_view` e expõe
+      `trackEvent` para eventos de produto. **Falta** logging estruturado/telemetria
+      server-side das execuções de agente.
 
 ---
 

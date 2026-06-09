@@ -12,6 +12,7 @@ import "@fontsource/dm-sans/400.css";
 import "@fontsource/dm-sans/500.css";
 import "@fontsource/dm-sans/600.css";
 import "./globals.css";
+import { ConsentManager } from "@/components/analytics/ConsentManager";
 
 export const metadata: Metadata = {
   title: "Pauta — Assistente de Roteiros",
@@ -34,6 +35,7 @@ export default function RootLayout({
           }}
         />
         {children}
+        <ConsentManager />
       </body>
     </html>
   );

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import { Icon } from "@/components/Icon";
 import { PreferencesForm } from "@/components/PreferencesForm";
+import { ConsentSettings } from "@/components/analytics/ConsentSettings";
 
 export default async function ContaPage() {
   const session = await auth();
@@ -98,6 +99,8 @@ export default async function ContaPage() {
         initialModel={defaultModel}
         initialChannel={channel}
       />
+
+      <ConsentSettings />
     </main>
   );
 }
