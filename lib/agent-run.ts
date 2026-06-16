@@ -3,6 +3,7 @@
 // (structured output), persists the artifact and marks the agent as done.
 
 import { Types } from "mongoose";
+import { randomUUID } from "crypto";
 import { connectToDatabase } from "@/lib/db/mongoose";
 import { Project } from "@/models/Project";
 import { Artifact } from "@/models/Artifact";
@@ -418,11 +419,13 @@ async function executeImageRun(args: ImageRunArgs): Promise<string> {
 
     // RN-IMG03: persist every generated variation. A failure here aborts the run
     // (caught below → release), so the user never pays for an undelivered artifact.
+    // Per-execution token keeps object keys unique so concurrent runs never collide.
+    const runId = randomUUID();
     const urls = await Promise.all(
       result.images.map((dataUrl, i) =>
         storage.uploadDataUrl(dataUrl, {
           bucket: "offs-thumbnails",
-          filename: `thumbnail-${i + 1}.png`,
+          filename: `${runId}-thumbnail-${i + 1}.png`,
         }),
       ),
     );
@@ -435,7 +438,7 @@ async function executeImageRun(args: ImageRunArgs): Promise<string> {
           input.images.map((dataUrl, i) =>
             storage.uploadDataUrl(dataUrl, {
               bucket: "offs-prints",
-              filename: `ref-${i + 1}.png`,
+              filename: `${runId}-ref-${i + 1}.png`,
             }),
           ),
         );

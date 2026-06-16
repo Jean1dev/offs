@@ -84,8 +84,13 @@ export async function runImageAgent(
       .map((f) => fileToDataUrl(f));
   }
 
-  if (images.length === 0) {
-    throw new Error("O provedor de imagem não retornou nenhuma variação.");
+  // No partial execution (RN-C02): if the provider delivered fewer variations than
+  // requested (e.g. Nano Banana fan-out where some calls returned only text), fail the
+  // whole run so the reserve is released (RN-C03) instead of charging for a degraded result.
+  if (images.length < n) {
+    throw new Error(
+      `O provedor de imagem retornou ${images.length} de ${n} variações solicitadas.`,
+    );
   }
 
   return {
