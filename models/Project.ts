@@ -29,6 +29,12 @@ const ProjectSchema = new Schema(
       enum: ["claude", "claude-sonnet", "claude-haiku", "gpt", "gpt-mini", "gemini", "gemini-flash"],
       default: DEFAULT_AI_MODEL,
     },
+    // Image model default for this project (RN-IMG01). Null => fall back to the hierarchy.
+    imageModel: {
+      type: String,
+      enum: ["gpt-image", "nano-banana", null],
+      default: null,
+    },
     // Agent ids already executed in this project.
     done: { type: [String], default: [] },
     archived: { type: Boolean, default: false },

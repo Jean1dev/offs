@@ -7,7 +7,10 @@ import { connectToDatabase } from "@/lib/db/mongoose";
 import { Project } from "@/models/Project";
 import { Artifact } from "@/models/Artifact";
 import { runAgent } from "@/lib/ai/execute";
+import { runImageAgent } from "@/lib/ai/image-execute";
+import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { resolveModel } from "@/lib/ai/models";
+import { resolveImageModel } from "@/lib/ai/image-models";
 import { resolveAgentCustomization } from "@/lib/customization";
 import { researchTopic } from "@/lib/ai/research";
 import { getStorage } from "@/lib/storage";
@@ -18,14 +21,19 @@ import {
 } from "@/lib/credit-balance";
 import { agentCost } from "@/lib/credits";
 import { agentById, type Agent, type NarrativeModelId } from "@/lib/catalog";
-import type { AIModelId } from "@/lib/types";
+import type { AIModelId, AIImageModelId } from "@/lib/types";
 import type { ArtifactContent } from "@/lib/artifact-content";
+
+/** Number of thumbnail variations per execution (spec offs-geracao-imagem §4). */
+const THUMBNAIL_VARIATIONS = 3;
 
 export interface AgentRunInput {
   projectId: string;
   agentId: string;
   ctxMode: "referencia" | "rascunho" | null;
   model: AIModelId;
+  /** Image model for this execution (image agents only) — RN-IMG01. */
+  imageModel?: AIImageModelId;
   narrative?: NarrativeModelId;
   text: string;
   sources: string[];
@@ -83,6 +91,9 @@ function artifactToText(name: string, content: ArtifactContent): string {
         break;
       case "score":
         lines.push(`${b.label}: ${b.value} — ${b.sub}`);
+        break;
+      case "image":
+        lines.push(b.alt ?? b.url);
         break;
     }
   }
@@ -160,6 +171,27 @@ export async function executeAgentRun(
   // Customization overlay (F12): project-scoped overrides global; affects the
   // base prompt and adds a level to the model hierarchy (RN06).
   const overlay = await resolveAgentCustomization(userId, agent.id, project._id);
+
+  // Image agents (spec offs-geracao-imagem) take a separate path: image provider
+  // instead of generateObject, N variations persisted as N versions of one lineage.
+  if (agent.imageOutput) {
+    const imageModel = resolveImageModel({
+      execution: input.imageModel,
+      customization: overlay.imageModel,
+      project: (project.imageModel as AIImageModelId | null) ?? undefined,
+    });
+    return executeImageRun({
+      userId,
+      uid,
+      project,
+      agent,
+      produces,
+      context,
+      input,
+      imageModel,
+      promptBase: overlay.prompt ?? buildSystemPrompt(agent),
+    });
+  }
 
   const model = resolveModel({
     execution: input.model,
@@ -297,4 +329,163 @@ export async function executeAgentRun(
   await safeRecord("sucesso", usage.inputTokens, usage.outputTokens, cost);
 
   return String(artifact._id);
+}
+
+/** Builds the image prompt: the agent's (possibly customized) directive + project context. */
+function buildThumbnailPrompt(promptBase: string, context: string): string {
+  return `${promptBase}\n\nGancho e contexto do vídeo:\n${context}`;
+}
+
+interface ImageRunArgs {
+  userId: string;
+  uid: Types.ObjectId;
+  project: { _id: Types.ObjectId };
+  agent: Agent;
+  produces: string;
+  context: string;
+  input: AgentRunInput;
+  imageModel: AIImageModelId;
+  /** Resolved base/customized directive that guides the image generation. */
+  promptBase: string;
+}
+
+/**
+ * Image agent path (spec offs-geracao-imagem §5–8): generates N thumbnail variations,
+ * persists them to durable storage (RN-IMG03 — mandatory) and saves them as N versions
+ * of one artifact lineage (RN-IMG05). Reuses the credit machinery (RN-C01…C07).
+ */
+async function executeImageRun(args: ImageRunArgs): Promise<string> {
+  const {
+    userId,
+    uid,
+    project,
+    agent,
+    produces,
+    context,
+    input,
+    imageModel,
+    promptBase,
+  } = args;
+
+  // RN-IMG03: output persistence is mandatory — block at the door if there is no
+  // storage, before reserving any credit. base64 must never live in Mongo (RN-IMG04).
+  const storage = getStorage();
+  if (!storage) {
+    throw new AgentRunError(
+      "Geração de thumbnails exige armazenamento de imagens configurado (STORAGE_API_URL).",
+    );
+  }
+
+  const cost = agentCost(agent.id);
+  const safeRecord = async (
+    status: "sucesso" | "erro_llm" | "bloqueado_credito",
+    creditosDebitados: number,
+    custoRealUsd: number,
+  ) => {
+    try {
+      await recordUsage({
+        userId,
+        agenteId: agent.id,
+        projetoId: project._id,
+        modeloIa: imageModel,
+        tokensInput: 0,
+        tokensOutput: 0,
+        creditosDebitados,
+        status,
+        custoRealUsd,
+      });
+    } catch (e) {
+      console.error("Falha ao registrar consumo de créditos (imagem):", e);
+    }
+  };
+
+  // Reserva antecipada (RN-C01/C02): bloqueio total antes de gerar qualquer imagem.
+  try {
+    await reserveCredits(userId, cost);
+  } catch (e) {
+    await safeRecord("bloqueado_credito", 0, 0);
+    throw e;
+  }
+
+  try {
+    const prompt = buildThumbnailPrompt(promptBase, context);
+    const result = await runImageAgent({
+      imageModel,
+      prompt,
+      refs: input.images.length ? input.images : undefined,
+      n: THUMBNAIL_VARIATIONS,
+    });
+
+    // RN-IMG03: persist every generated variation. A failure here aborts the run
+    // (caught below → release), so the user never pays for an undelivered artifact.
+    const urls = await Promise.all(
+      result.images.map((dataUrl, i) =>
+        storage.uploadDataUrl(dataUrl, {
+          bucket: "offs-thumbnails",
+          filename: `thumbnail-${i + 1}.png`,
+        }),
+      ),
+    );
+
+    // Persist the reference prints too (RN04, best-effort — they are not the product).
+    let inputImages: string[] = [];
+    if (input.images.length) {
+      try {
+        inputImages = await Promise.all(
+          input.images.map((dataUrl, i) =>
+            storage.uploadDataUrl(dataUrl, {
+              bucket: "offs-prints",
+              filename: `ref-${i + 1}.png`,
+            }),
+          ),
+        );
+      } catch (e) {
+        console.error("Falha ao persistir referências no storage:", e);
+      }
+    }
+
+    // Each variation becomes a version of the "Thumbnail" lineage (RN-IMG05).
+    const variations: ArtifactContent[] = urls.map((url) => ({
+      summary: "Variação de thumbnail gerada a partir do gancho do conteúdo.",
+      blocks: [{ t: "image", url, prompt }],
+    }));
+
+    // Regeneration appends new variations to the existing lineage (RN-C04 / RN-IMG05).
+    let lineageId: Types.ObjectId | undefined;
+    let name = produces;
+    if (input.regenerateOf && Types.ObjectId.isValid(input.regenerateOf)) {
+      const orig = await Artifact.findOne({
+        _id: input.regenerateOf,
+        projectId: project._id,
+      });
+      if (orig) {
+        lineageId = orig.lineageId;
+        name = orig.name;
+      }
+    }
+
+    const artifact = await Artifact.createVariations(
+      {
+        projectId: project._id,
+        name,
+        agentId: agent.id,
+        model: imageModel,
+        inputImages,
+      },
+      variations,
+      { lineageId },
+    );
+
+    await Project.updateOne(
+      { _id: project._id, userId: uid },
+      { $addToSet: { done: agent.id } },
+    );
+
+    await safeRecord("sucesso", cost, result.costUsd);
+    return String(artifact._id);
+  } catch (e) {
+    await releaseCredits(userId, cost);
+    await safeRecord("erro_llm", 0, 0);
+    throw e;
+  }
 }

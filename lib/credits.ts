@@ -4,7 +4,7 @@
 // lógica de saldo/reserva/débito vive no model CreditBalance e em lib/credit-balance.ts.
 // Mantendo isto puro, as regras de custo ficam testáveis sem banco (ver tests/).
 
-import type { AIModelId } from "@/lib/types";
+import type { AIModelId, AIImageModelId } from "@/lib/types";
 
 // ── Planos ──
 export type Plano = "free";
@@ -31,6 +31,7 @@ export const AGENT_COSTS: Record<string, number> = {
   estruturador: 1, // output médio
   roteirista: 3, // agente mais pesado — maior contexto e output
   "roteirizador-intro": 1, // output pequeno e focado
+  "gerador-thumbnails": 6, // geração de imagem (2–3 variações) — custo de LLM ordens de magnitude maior
 };
 
 export const DEFAULT_AGENT_COST = 1;
@@ -65,6 +66,23 @@ export function realCostUsd(
   const p = MODEL_PRICING[model] ?? { input: 0, output: 0 };
   const usd = (tokensInput / 1e6) * p.input + (tokensOutput / 1e6) * p.output;
   return Math.round(usd * 1e6) / 1e6;
+}
+
+// ── Preço por modelo de imagem (spec offs-geracao-imagem §9) ──
+// USD por imagem gerada. Diferente do texto, o custo é por imagem (não por token),
+// então a calibragem de créditos (D08) é feita por modelo de imagem. Ajustável.
+export const IMAGE_MODEL_PRICING: Record<AIImageModelId, number> = {
+  "gpt-image": 0.04, // gpt-image-1, ~quality média 1024² (varia 0.01–0.17 por qualidade)
+  "nano-banana": 0.039, // Gemini 2.5 Flash Image — 1290 tok @ $30/1M output
+};
+
+/** Custo real em USD de uma execução de imagem: preço por imagem × nº de variações. */
+export function imageRealCostUsd(
+  model: AIImageModelId,
+  imageCount: number,
+): number {
+  const per = IMAGE_MODEL_PRICING[model] ?? 0;
+  return Math.round(per * imageCount * 1e6) / 1e6;
 }
 
 /** Saldo exposto à UI — o frontend reflete este estado, nunca o calcula (spec §6). */

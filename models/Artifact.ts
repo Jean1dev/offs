@@ -6,7 +6,7 @@
 // The user can view previous versions and promote one back to active.
 
 import mongoose, { Schema, type Model, type Types } from "mongoose";
-import type { AIModelId } from "@/lib/types";
+import type { ArtifactModelId } from "@/lib/types";
 import type { ArtifactContent } from "@/lib/artifact-content";
 
 export type ArtifactStatus = "ativo" | "arquivado";
@@ -17,7 +17,7 @@ export interface ArtifactDoc {
   lineageId: Types.ObjectId;
   name: string;
   agentId: string;
-  model: AIModelId;
+  model: ArtifactModelId;
   version: number;
   status: ArtifactStatus;
   content: ArtifactContent;
@@ -32,7 +32,7 @@ export interface ArtifactInput {
   projectId: Types.ObjectId | string;
   name: string;
   agentId: string;
-  model: AIModelId;
+  model: ArtifactModelId;
   content: ArtifactContent;
   inputImages?: string[];
 }
@@ -49,6 +49,18 @@ interface ArtifactModel extends Model<ArtifactDoc> {
   ): Promise<ArtifactDoc>;
   /** Makes a specific version active and archives the others in its lineage. */
   promote(artifactId: Types.ObjectId | string): Promise<ArtifactDoc | null>;
+  /**
+   * Multi-output (spec offs-geracao-imagem §8): persists N variations as N versions
+   * of one lineage in a single execution. The first variation becomes active, the
+   * rest archived — the user promotes another via the existing version mechanism.
+   * When `lineageId` is given it appends to an existing lineage (regeneration),
+   * archiving its current active version first. Returns the active version.
+   */
+  createVariations(
+    input: Omit<ArtifactInput, "content">,
+    variations: ArtifactContent[],
+    opts?: { lineageId?: Types.ObjectId | string },
+  ): Promise<ArtifactDoc>;
 }
 
 const ArtifactSchema = new Schema<ArtifactDoc, ArtifactModel>(
@@ -64,7 +76,7 @@ const ArtifactSchema = new Schema<ArtifactDoc, ArtifactModel>(
     agentId: { type: String, required: true },
     model: {
       type: String,
-      enum: ["claude", "claude-sonnet", "claude-haiku", "gpt", "gpt-mini", "gemini", "gemini-flash"],
+      enum: ["claude", "claude-sonnet", "claude-haiku", "gpt", "gpt-mini", "gemini", "gemini-flash", "gpt-image", "nano-banana"],
       required: true,
     },
     version: { type: Number, required: true, min: 1 },
@@ -142,6 +154,54 @@ ArtifactSchema.statics.regenerate = async function (
     content: input.content,
     inputImages: input.inputImages ?? [],
   });
+};
+
+ArtifactSchema.statics.createVariations = async function (
+  this: ArtifactModel,
+  input: Omit<ArtifactInput, "content">,
+  variations: ArtifactContent[],
+  opts: { lineageId?: Types.ObjectId | string } = {},
+): Promise<ArtifactDoc> {
+  if (variations.length === 0) {
+    throw new Error("createVariations: nenhuma variação fornecida.");
+  }
+
+  // Existing lineage (regeneration) or a fresh one.
+  let lineageId: Types.ObjectId;
+  let baseVersion = 0;
+  if (opts.lineageId) {
+    lineageId =
+      typeof opts.lineageId === "string"
+        ? new mongoose.Types.ObjectId(opts.lineageId)
+        : opts.lineageId;
+    // Keep the unique-active invariant: archive the current active version first.
+    await this.updateMany(
+      { lineageId, status: "ativo" },
+      { status: "arquivado" },
+    );
+    const max = await this.findOne({ lineageId })
+      .sort({ version: -1 })
+      .select("version");
+    baseVersion = max?.version ?? 0;
+  } else {
+    lineageId = new mongoose.Types.ObjectId();
+  }
+
+  // First variation is active; the rest are archived siblings of the same lineage.
+  const docs = variations.map((content, i) => ({
+    projectId: input.projectId,
+    lineageId,
+    name: input.name,
+    agentId: input.agentId,
+    model: input.model,
+    version: baseVersion + i + 1,
+    status: (i === 0 ? "ativo" : "arquivado") as ArtifactStatus,
+    content,
+    inputImages: input.inputImages ?? [],
+  }));
+
+  const created = await this.insertMany(docs);
+  return created[0] as unknown as ArtifactDoc;
 };
 
 ArtifactSchema.statics.promote = async function (

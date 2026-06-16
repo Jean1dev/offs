@@ -56,11 +56,13 @@ Modelo de pesos fixos por agente. Simples de comunicar ao usuário e justo o suf
 | `estruturador` | Estruturador de roteiros | 1 crédito | Output médio |
 | `roteirista` | Roteirista | 3 créditos | Agente mais pesado — maior contexto e output |
 | `roteirizador-intro` | Roteirizador de introduções | 1 crédito | Output pequeno e focado |
+| `gerador-thumbnails` | Gerador de thumbnails | 6 créditos | Geração de imagem (2–3 variações) — custo de LLM ordens de magnitude maior; ver `offs-geracao-imagem.md` |
 
-**Custo do pipeline completo (fluxo guiado):** 13 créditos
+**Custo do pipeline de texto (8 agentes do fluxo guiado):** 13 créditos
+**Custo do fluxo completo com thumbnails (passo 9):** 19 créditos
 **Créditos diários no free tier:** 10
 
-Isso é intencional: o usuário gratuito consegue rodar quase um pipeline completo por dia, mas não um completo + extras. Incentiva conversão futura sem bloquear a experiência real do produto.
+Isso é intencional: com os agentes de texto, o usuário gratuito roda quase um pipeline completo por dia, mas não um completo + extras. Com o Gerador de Thumbnails incluído (6 créditos), o fluxo de ponta a ponta passa de 19 créditos e **não cabe em um único ciclo de 24h** — torna-se uma jornada de múltiplos dias no free tier. Isso é aceitável e até desejável como alavanca de conversão futura. O peso de 6 é provisório até a primeira leva de `custo_real_usd` real, calibrado **por modelo de imagem** (ver `offs-geracao-imagem.md` §9).
 
 ### Nota sobre regeneração
 

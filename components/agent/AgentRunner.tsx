@@ -17,6 +17,7 @@ import {
 import {
   INPUT,
   MODELS,
+  IMAGE_MODELS_META,
   CATEGORIES,
   NARRATIVE_MODELS,
   agentById,
@@ -24,7 +25,7 @@ import {
   type InputType,
   type NarrativeModelId,
 } from "@/lib/catalog";
-import type { AIModelId } from "@/lib/types";
+import { DEFAULT_IMAGE_MODEL, type AIModelId, type AIImageModelId } from "@/lib/types";
 import type { ArtifactListItem } from "@/lib/projects";
 import { formatResetCountdown, type BalanceView } from "@/lib/credits";
 import { trackEvent } from "@/lib/analytics";
@@ -475,6 +476,7 @@ export function AgentRunner({
   preselectArtifactId,
   regenerateOf,
   initialModel,
+  initialImageModel,
   cost,
   balance,
 }: {
@@ -485,6 +487,8 @@ export function AgentRunner({
   regenerateOf?: string;
   /** Pre-selected model (e.g. from an agent customization); falls back to project. */
   initialModel?: AIModelId;
+  /** Pre-selected image model (image agents); falls back to the image hierarchy. */
+  initialImageModel?: AIImageModelId;
   /** Custo em créditos desta execução (spec §3). */
   cost: number;
   /** Saldo atual do usuário — apenas reflete o estado do backend (spec §6). */
@@ -512,6 +516,9 @@ export function AgentRunner({
   const [narrative, setNarrative] = useState<NarrativeModelId>("hibrido");
   const [sources, setSources] = useState<string[]>([]);
   const [model, setModel] = useState<AIModelId>(initialModel ?? project.model);
+  const [imageModel, setImageModel] = useState<AIImageModelId>(
+    initialImageModel ?? DEFAULT_IMAGE_MODEL,
+  );
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -551,6 +558,7 @@ export function AgentRunner({
         agentId: agent.id,
         ctxMode,
         model,
+        imageModel: agent.imageOutput ? imageModel : undefined,
         narrative,
         text,
         sources,
@@ -787,42 +795,84 @@ export function AgentRunner({
               <span style={{ fontFamily: "var(--font-display)", fontSize: 18, color: "var(--text-primary)" }}>{produces}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <SectionLabel>Modelo de IA</SectionLabel>
+              <SectionLabel>{agent.imageOutput ? "Modelo de imagem" : "Modelo de IA"}</SectionLabel>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "var(--text-tertiary)" }}>
                 <Icon name="clock" size={11} color="var(--text-tertiary)" />só nesta execução
               </span>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
-              {(Object.keys(MODELS) as AIModelId[]).map((k) => {
-                const on = model === k;
-                return (
-                  <button
-                    key={k}
-                    onClick={() => setModel(k)}
-                    style={{
-                      all: "unset",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 9,
-                      padding: "8px 10px",
-                      borderRadius: "var(--radius-md)",
-                      border: "1px solid " + (on ? "var(--accent)" : "var(--border)"),
-                      background: on ? "var(--accent-light)" : "transparent",
-                      transition: "all .15s",
-                    }}
-                  >
-                    <span style={{ flex: 1, fontSize: 12.5, fontWeight: on ? 600 : 500, color: on ? "var(--text-primary)" : "var(--text-secondary)" }}>
-                      {MODELS[k].name}
-                    </span>
-                    {on && k === project.model && (
-                      <span style={{ fontSize: 10, color: "var(--text-tertiary)" }}>padrão</span>
-                    )}
-                    {on && <Icon name="check" size={15} color="var(--accent)" sw={2.4} />}
-                  </button>
-                );
-              })}
-            </div>
+            {agent.imageOutput ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+                {(Object.keys(IMAGE_MODELS_META) as AIImageModelId[]).map((k) => {
+                  const on = imageModel === k;
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => setImageModel(k)}
+                      style={{
+                        all: "unset",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 2,
+                        padding: "8px 10px",
+                        borderRadius: "var(--radius-md)",
+                        border: "1px solid " + (on ? "var(--accent)" : "var(--border)"),
+                        background: on ? "var(--accent-light)" : "transparent",
+                        transition: "all .15s",
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                        <span style={{ flex: 1, fontSize: 12.5, fontWeight: on ? 600 : 500, color: on ? "var(--text-primary)" : "var(--text-secondary)" }}>
+                          {IMAGE_MODELS_META[k].name}
+                        </span>
+                        {on && <Icon name="check" size={15} color="var(--accent)" sw={2.4} />}
+                      </span>
+                      <span style={{ fontSize: 11, color: "var(--text-tertiary)", lineHeight: 1.4 }}>
+                        {IMAGE_MODELS_META[k].blurb}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 20 }}>
+                {(Object.keys(MODELS) as AIModelId[]).map((k) => {
+                  const on = model === k;
+                  return (
+                    <button
+                      key={k}
+                      onClick={() => setModel(k)}
+                      style={{
+                        all: "unset",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 9,
+                        padding: "8px 10px",
+                        borderRadius: "var(--radius-md)",
+                        border: "1px solid " + (on ? "var(--accent)" : "var(--border)"),
+                        background: on ? "var(--accent-light)" : "transparent",
+                        transition: "all .15s",
+                      }}
+                    >
+                      <span style={{ flex: 1, fontSize: 12.5, fontWeight: on ? 600 : 500, color: on ? "var(--text-primary)" : "var(--text-secondary)" }}>
+                        {MODELS[k].name}
+                      </span>
+                      {on && k === project.model && (
+                        <span style={{ fontSize: 10, color: "var(--text-tertiary)" }}>padrão</span>
+                      )}
+                      {on && <Icon name="check" size={15} color="var(--accent)" sw={2.4} />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {agent.multiOutput && (
+              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 14, fontSize: 11.5, color: "var(--text-tertiary)", lineHeight: 1.4 }}>
+                <Icon name="layers" size={13} color="var(--text-tertiary)" />
+                Gera 2–3 variações — cada uma vira uma versão; você promove a preferida.
+              </div>
+            )}
             {/* Custo visível antes de executar (spec §6.5). */}
             <div
               style={{

@@ -8,7 +8,7 @@ import { Project } from "@/models/Project";
 import { AgentCustomization } from "@/models/AgentCustomization";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
 import { agentById } from "@/lib/catalog";
-import type { AIModelId } from "@/lib/types";
+import type { AIModelId, AIImageModelId } from "@/lib/types";
 
 export type CustomizationScope = "global" | "projeto";
 
@@ -61,7 +61,11 @@ export async function resolveAgentCustomization(
   userId: string,
   agentId: string,
   projectId: Types.ObjectId | string,
-): Promise<{ prompt?: string; model?: AIModelId }> {
+): Promise<{
+  prompt?: string;
+  model?: AIModelId;
+  imageModel?: AIImageModelId;
+}> {
   await connectToDatabase();
   const uid = new Types.ObjectId(userId);
   const proj = Types.ObjectId.isValid(projectId)
@@ -84,6 +88,9 @@ export async function resolveAgentCustomization(
   return {
     prompt: overlay.prompt?.trim() || undefined,
     model: (overlay.model as AIModelId | null) ?? undefined,
+    imageModel:
+      ((overlay as { imageModel?: AIImageModelId | null }).imageModel) ??
+      undefined,
   };
 }
 

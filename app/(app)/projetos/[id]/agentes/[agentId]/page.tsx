@@ -47,6 +47,7 @@ export default async function AgentPage({
         preselectArtifactId={fonte}
         regenerateOf={regenerar}
         initialModel={customization.model}
+        initialImageModel={customization.imageModel ?? project.imageModel ?? undefined}
         cost={agentCost(agent.id)}
         balance={balance}
       />

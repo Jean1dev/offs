@@ -19,10 +19,18 @@ describe("agentCost", () => {
     expect(agentCost("agente-inexistente")).toBe(1);
   });
 
-  it("pipeline completo custa 13 e excede o free tier (10)", () => {
-    const total = Object.values(AGENT_COSTS).reduce((a, b) => a + b, 0);
-    expect(total).toBe(13);
-    expect(total).toBeGreaterThan(PLAN_DAILY_CREDITS.free);
+  it("pesa o gerador de thumbnails em 6 créditos", () => {
+    expect(agentCost("gerador-thumbnails")).toBe(6);
+  });
+
+  it("pipeline de texto custa 13; com thumbnails sobe para 19 (spec créditos §6.3)", () => {
+    const textPipeline = Object.entries(AGENT_COSTS)
+      .filter(([id]) => id !== "gerador-thumbnails")
+      .reduce((a, [, cost]) => a + cost, 0);
+    const full = Object.values(AGENT_COSTS).reduce((a, b) => a + b, 0);
+    expect(textPipeline).toBe(13);
+    expect(full).toBe(19);
+    expect(full).toBeGreaterThan(PLAN_DAILY_CREDITS.free);
   });
 });
 

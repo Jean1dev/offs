@@ -3,7 +3,7 @@
 > Complemento às Especificações de Negócio v1.0 e à spec do Agente Gerador de Thumbnails
 > Escopo: a infraestrutura de geração de imagem que sustenta o agente `gerador-thumbnails`
 > e qualquer agente visual futuro (título visual, capas)
-> Status: backlog — desenho fechado, ainda não implementado
+> Status: implementado — o agente `gerador-thumbnails` e a camada de imagem estão no código
 
 ---
 
@@ -264,5 +264,5 @@ Fontes:
 | D06 | Categoria | **Resolvido** — nova categoria "Produção visual" (`cat: "visual"`) |
 | D07 | Provider | **Resolvido** — `gpt-image` default + `nano-banana` selecionável, atrás da dimensão plugável |
 | D08 | Peso 6 créditos | Provisório — calibrar com `custo_real_usd` **por modelo de imagem** |
-| D09 (novo) | Tamanho/aspect ratio padrão da thumbnail (ex. 1536×1024 / 16:9) e se é configurável | Em aberto |
-| D10 (novo) | Verificar acesso a `gpt-image-1` na chave OpenAI do ambiente (requer verificação de org na OpenAI) | Em aberto |
+| D09 (novo) | Tamanho/aspect ratio padrão da thumbnail | **Resolvido** — default `1536×1024` (~16:9) em `image-execute.ts`; configurável via `RunImageInput.size` |
+| D10 (novo) | Verificar acesso a `gpt-image-1` na chave OpenAI do ambiente (requer verificação de org na OpenAI) | Em aberto — validar no smoke test e2e |
