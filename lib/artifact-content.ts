@@ -60,6 +60,14 @@ export interface ScoreBlock {
   label: string;
   sub: string;
 }
+/** A generated image (thumbnail). `url` points to durable storage (RN-IMG04 — never base64). */
+export interface ImageBlock {
+  t: "image";
+  url: string;
+  alt?: string;
+  /** Effective prompt used to generate it — for traceability/regeneration. */
+  prompt?: string;
+}
 
 export type ArtifactBlock =
   | MetricsBlock
@@ -73,7 +81,8 @@ export type ArtifactBlock =
   | RankedBlock
   | StructureBlock
   | ScriptBlock
-  | ScoreBlock;
+  | ScoreBlock
+  | ImageBlock;
 
 export interface ArtifactContent {
   summary: string;

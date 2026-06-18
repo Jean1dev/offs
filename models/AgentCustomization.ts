@@ -25,6 +25,8 @@ const AgentCustomizationSchema = new Schema(
     prompt: { type: String, default: "" },
     // Specific model for this agent. Absent => fall back to the model hierarchy.
     model: { type: String, enum: ["claude", "claude-sonnet", "claude-haiku", "gpt", "gpt-mini", "gemini", "gemini-flash"], default: null },
+    // Specific image model for this agent (image agents). Absent => image hierarchy.
+    imageModel: { type: String, enum: ["gpt-image", "nano-banana", null], default: null },
     scope: { type: String, enum: ["global", "projeto"], required: true },
     // Required when scope === "projeto"; null for global overlays.
     projectId: {

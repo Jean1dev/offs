@@ -55,6 +55,9 @@ export function buildSystemPrompt(
   // Official prompt (from the provided GPTs) when available; else generated.
   const core = AGENT_BASE_PROMPTS[agent.id] ?? generatedCore(agent);
 
+  // Image agents don't emit structured blocks — the directive is purely visual.
+  if (agent.imageOutput) return core;
+
   const parts = [core, STRUCTURED_OUTPUT_RULE];
 
   if (agent.requiresSources) parts.push(ROTEIRISTA_POLICY);

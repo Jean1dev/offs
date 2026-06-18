@@ -159,6 +159,31 @@ export function ArtifactBlock({ b }: { b: Block }) {
           {b.text}
         </div>
       );
+    case "image":
+      return (
+        <figure style={{ ...wrap, margin: 0 }}>
+          <a
+            href={b.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "block",
+              borderRadius: "var(--radius-lg)",
+              overflow: "hidden",
+              border: "1px solid var(--border)",
+              background: "var(--bg-subtle)",
+              aspectRatio: "16/9",
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={b.url}
+              alt={b.alt ?? "Thumbnail gerada"}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          </a>
+        </figure>
+      );
     case "score":
       return (
         <div style={{ ...wrap, display: "flex", alignItems: "center", gap: 18, padding: 22, background: "linear-gradient(135deg, var(--rose-50), var(--bg-surface))", border: "1px solid var(--border)", borderRadius: "var(--radius-lg)" }}>

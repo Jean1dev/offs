@@ -8,6 +8,16 @@ export type AIModelId = "claude" | "claude-sonnet" | "claude-haiku" | "gpt" | "g
 
 export const DEFAULT_AI_MODEL: AIModelId = "claude";
 
+/** Image-generation model ids. Independent dimension from the text models above
+ *  (spec offs-geracao-imagem §3). The provider mapping + per-provider call shape
+ *  live in lib/ai/image-models.ts; display metadata in lib/catalog (IMAGE_MODELS_META). */
+export type AIImageModelId = "gpt-image" | "nano-banana";
+
+export const DEFAULT_IMAGE_MODEL: AIImageModelId = "gpt-image";
+
+/** What an artifact's `model` field can hold: a text model or an image model. */
+export type ArtifactModelId = AIModelId | AIImageModelId;
+
 /** Optional YouTube channel connection (RN01 — never required). */
 export interface Channel {
   name: string;

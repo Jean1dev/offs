@@ -105,7 +105,10 @@ Explicitamente fora da v1 (spec §10), listados para registro:
 - [ ] **Exportação** para Google Docs / Notion.
 - [ ] **Mobile** (foco atual é desktop; não há layout responsivo dedicado).
 - [ ] **Histórico de execuções com diff visual** entre versões de artefato.
-- [ ] Agentes de **thumbnail, título ou descrição**.
+- [x] ~~Agente de **thumbnail**~~ **implementado**: `gerador-thumbnails` (categoria
+      "Produção visual"), geração de imagem via `gpt-image`/`nano-banana`, 2–3 variações
+      como versões, storage obrigatório do output. Ver `offs-geracao-imagem.md`. Faltam
+      ainda os agentes de **título** e **descrição** (mesma categoria, roadmap).
 - [ ] **Publicação direta** no YouTube.
 - [ ] Criação de **agentes próprios** pelo usuário (ligado a D04).
 

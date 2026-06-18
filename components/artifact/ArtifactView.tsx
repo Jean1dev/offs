@@ -9,7 +9,7 @@ import { Icon } from "@/components/Icon";
 import { Button, IconBtn, AgentGlyph } from "@/components/ui";
 import { ArtifactBlock } from "@/components/artifact/ArtifactBlock";
 import { AGENTS, agentById } from "@/lib/catalog";
-import type { ArtifactContent } from "@/lib/artifact-content";
+import type { ArtifactContent, ImageBlock } from "@/lib/artifact-content";
 import type { ArtifactDetail } from "@/lib/artifacts";
 import {
   renameArtifactAction,
@@ -53,9 +53,72 @@ function toPlainText(name: string, content: ArtifactContent): string {
       case "score":
         lines.push(`${b.label}: ${b.value} — ${b.sub}`);
         break;
+      case "image":
+        lines.push(b.url);
+        break;
     }
   }
   return lines.join("\n");
+}
+
+// ── variation gallery (image artifacts) ─────────────────
+// The N variations of one execution are versions of the same lineage (RN-IMG05);
+// here we show them side by side so the user can pick and promote one as active.
+function VariationGallery({
+  projectId,
+  artifact,
+}: {
+  projectId: string;
+  artifact: ArtifactDetail;
+}) {
+  const router = useRouter();
+  const variations = artifact.versions.filter((v) => v.thumbUrl);
+  if (variations.length <= 1) return null;
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-tertiary)", marginBottom: 10 }}>
+        Variações geradas
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
+        {variations.map((v) => {
+          const cur = v.id === artifact.id;
+          return (
+            <div
+              key={v.id}
+              style={{
+                border: "1px solid " + (cur ? "var(--accent)" : "var(--border)"),
+                borderRadius: "var(--radius-lg)",
+                overflow: "hidden",
+                background: "var(--bg-surface)",
+              }}
+            >
+              <button
+                onClick={() => !cur && router.push(`/projetos/${projectId}/artefatos/${v.id}`)}
+                style={{ all: "unset", cursor: cur ? "default" : "pointer", display: "block", width: "100%", aspectRatio: "16/9", background: "var(--bg-subtle)" }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={v.thumbUrl} alt={`Variação v${v.version}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </button>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 10px" }}>
+                <span style={{ fontSize: 11.5, fontWeight: 600, color: cur ? "var(--accent)" : "var(--text-secondary)" }}>
+                  v{v.version}{v.status === "ativo" ? " · ativa" : ""}
+                </span>
+                {v.status !== "ativo" && (
+                  <form action={promoteArtifactAction}>
+                    <input type="hidden" name="projectId" value={projectId} />
+                    <input type="hidden" name="artifactId" value={v.id} />
+                    <button type="submit" style={{ all: "unset", cursor: "pointer", fontSize: 11.5, fontWeight: 600, color: "var(--accent)" }}>
+                      Tornar ativa
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 // ── "use as input" picker ───────────────────────────────
@@ -179,6 +242,10 @@ export function ArtifactView({
   const agent = agentById(artifact.agentId);
   const activeVersion = artifact.versions.find((v) => v.status === "ativo");
   const isArchived = artifact.status === "arquivado";
+  const isImage = !!agent?.imageOutput;
+  const imageUrl = artifact.content.blocks.find(
+    (b): b is ImageBlock => b.t === "image",
+  )?.url;
 
   const copy = async () => {
     try {
@@ -251,12 +318,24 @@ export function ArtifactView({
       {/* actions */}
       <div style={{ marginBottom: 28, paddingBottom: 22, borderBottom: "1px solid var(--border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <Button variant="secondary" size="sm" icon={copied ? "check" : "copy"} onClick={copy}>
-            {copied ? "Copiado" : "Copiar"}
-          </Button>
-          <Button size="sm" icon="arrowR" onClick={() => setPicker(true)}>
-            Usar como input
-          </Button>
+          {isImage ? (
+            /* Artefato de imagem: "Copiar" vira "Download" (spec offs-geracao-imagem §5.2). */
+            <a href={imageUrl} download target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+              <Button variant="secondary" size="sm" icon="download" disabled={!imageUrl}>
+                Download
+              </Button>
+            </a>
+          ) : (
+            <Button variant="secondary" size="sm" icon={copied ? "check" : "copy"} onClick={copy}>
+              {copied ? "Copiado" : "Copiar"}
+            </Button>
+          )}
+          {/* "Usar como input" oculto para imagem: nenhum agente consome imagem (§5.2). */}
+          {!isImage && (
+            <Button size="sm" icon="arrowR" onClick={() => setPicker(true)}>
+              Usar como input
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -332,6 +411,9 @@ export function ArtifactView({
           </div>
         </div>
       )}
+
+      {/* variation gallery (image artifacts) */}
+      {isImage && <VariationGallery projectId={projectId} artifact={artifact} />}
 
       {/* body */}
       <div>

@@ -7,7 +7,7 @@
 
 import mongoose, { Schema, type Model, type Types } from "mongoose";
 import { randomUUID } from "crypto";
-import type { AIModelId } from "@/lib/types";
+import type { AIModelId, AIImageModelId } from "@/lib/types";
 
 export type UsageStatus = "sucesso" | "erro_llm" | "bloqueado_credito";
 
@@ -17,7 +17,7 @@ export interface UsageRecordDoc {
   userId: Types.ObjectId;
   agenteId: string;
   projetoId: Types.ObjectId;
-  modeloIa: AIModelId;
+  modeloIa: AIModelId | AIImageModelId;
   tokensInput: number;
   tokensOutput: number;
   creditosDebitados: number;

@@ -6,13 +6,15 @@ import { Project } from "@/models/Project";
 import { Artifact, type ArtifactStatus } from "@/models/Artifact";
 import { formatRelative } from "@/lib/projects";
 import type { AIModelId } from "@/lib/types";
-import type { ArtifactContent } from "@/lib/artifact-content";
+import type { ArtifactContent, ImageBlock } from "@/lib/artifact-content";
 
 export interface ArtifactVersionRef {
   id: string;
   version: number;
   status: ArtifactStatus;
   when: string;
+  /** First image URL of the version, when it is an image artifact (variation thumb). */
+  thumbUrl?: string;
 }
 
 export interface ArtifactDetail {
@@ -62,12 +64,18 @@ export async function getArtifactDetail(
     content: art.content,
     inputImages: art.inputImages ?? [],
     when: formatRelative(art.updatedAt),
-    versions: versions.map((v) => ({
-      id: String(v._id),
-      version: v.version,
-      status: v.status,
-      when: formatRelative(v.updatedAt),
-    })),
+    versions: versions.map((v) => {
+      const img = v.content?.blocks?.find(
+        (b): b is ImageBlock => b.t === "image",
+      );
+      return {
+        id: String(v._id),
+        version: v.version,
+        status: v.status,
+        when: formatRelative(v.updatedAt),
+        thumbUrl: img?.url,
+      };
+    }),
   };
 }
 

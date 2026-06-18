@@ -15,7 +15,7 @@ import {
   formatResetCountdown,
   type BalanceView,
 } from "@/lib/credits";
-import type { AIModelId } from "@/lib/types";
+import type { AIModelId, AIImageModelId } from "@/lib/types";
 
 const dailyCredits = () => PLAN_DAILY_CREDITS[DEFAULT_PLANO];
 
@@ -112,11 +112,14 @@ export async function recordUsage(input: {
   userId: string;
   agenteId: string;
   projetoId: Types.ObjectId | string;
-  modeloIa: AIModelId;
+  /** Modelo de texto ou de imagem (RN-IMG06: registra o id efetivo). */
+  modeloIa: AIModelId | AIImageModelId;
   tokensInput: number;
   tokensOutput: number;
   creditosDebitados: number;
   status: UsageStatus;
+  /** Custo real já calculado (execuções de imagem — preço por imagem, não por token). */
+  custoRealUsd?: number;
 }): Promise<void> {
   await connectToDatabase();
   await UsageRecord.create({
@@ -127,11 +130,13 @@ export async function recordUsage(input: {
     tokensInput: input.tokensInput,
     tokensOutput: input.tokensOutput,
     creditosDebitados: input.creditosDebitados,
-    custoRealUsd: realCostUsd(
-      input.modeloIa,
-      input.tokensInput,
-      input.tokensOutput,
-    ),
+    custoRealUsd:
+      input.custoRealUsd ??
+      realCostUsd(
+        input.modeloIa as AIModelId,
+        input.tokensInput,
+        input.tokensOutput,
+      ),
     status: input.status,
   });
 }

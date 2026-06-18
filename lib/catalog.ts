@@ -4,7 +4,7 @@
 // models, input types, project statuses and AI-model display metadata.
 
 import type { IconName } from "@/components/Icon";
-import type { AIModelId } from "@/lib/types";
+import type { AIModelId, AIImageModelId } from "@/lib/types";
 
 // ── Project status taxonomy: ideia → roteiro → produção → publicado ──
 export type ProjectStatus = "ideia" | "roteiro" | "producao" | "publicado";
@@ -34,6 +34,24 @@ export const MODELS: Record<
   "gemini-flash": { name: "Gemini 2.5 Flash", short: "Gemini Flash", mono: "g", tint: "var(--gold-400)" },
 };
 
+// ── Image models — display metadata (pure data, safe for the client). The
+// provider registry that actually calls them lives in lib/ai/image-models.ts. ──
+export const IMAGE_MODELS_META: Record<
+  AIImageModelId,
+  { name: string; short: string; blurb: string }
+> = {
+  "gpt-image": {
+    name: "GPT Image",
+    short: "GPT Image",
+    blurb: "Forte em texto grande e legível na imagem.",
+  },
+  "nano-banana": {
+    name: "Nano Banana",
+    short: "Nano Banana",
+    blurb: "Mantém a identidade visual a partir de referências.",
+  },
+};
+
 // ── Agent input types ──
 export type InputType = "image" | "text" | "artifact" | "sources";
 
@@ -57,7 +75,7 @@ export const NARRATIVE_MODELS: { id: NarrativeModelId; name: string; blurb: stri
 ];
 
 // ── Categories ──
-export type AgentCategory = "canal" | "roteiro";
+export type AgentCategory = "canal" | "roteiro" | "visual";
 
 export const CATEGORIES: Record<
   AgentCategory,
@@ -65,6 +83,7 @@ export const CATEGORIES: Record<
 > = {
   canal: { label: "Canal do YouTube", blurb: "Inteligência e estratégia do canal", icon: "trending" },
   roteiro: { label: "Roteirista", blurb: "Criação e refino do roteiro", icon: "edit" },
+  visual: { label: "Produção visual", blurb: "Imagens e capas do vídeo", icon: "image" },
 };
 
 // ── Agents ──
@@ -104,6 +123,10 @@ export interface Agent {
   contexts?: { referencia: AgentContext; rascunho: AgentContext };
   /** Runs a web-search research step before generating (pesquisa real). */
   webSearch?: boolean;
+  /** Produces an image artifact via the image pipeline (spec offs-geracao-imagem). */
+  imageOutput?: boolean;
+  /** A single execution yields multiple variations, saved as versions of one lineage. */
+  multiOutput?: boolean;
 }
 
 export const AGENTS: Agent[] = [
@@ -247,6 +270,22 @@ export const AGENTS: Agent[] = [
     inputArtifact: "Rascunho do roteiro",
     desc: "Reescreve os primeiros 30 segundos do roteiro com foco em retenção — gancho, promessa e ritmo.",
   },
+  // Categoria: Produção visual
+  {
+    id: "gerador-thumbnails",
+    cat: "visual",
+    role: "produtor",
+    icon: "image",
+    name: "Gerador de thumbnails",
+    blurb: "Gera variações de thumbnail a partir do gancho real do vídeo.",
+    produces: "Thumbnail",
+    producesIcon: "image",
+    inputs: ["artifact", "text", "image"],
+    inputArtifact: "Introdução refinada",
+    imageOutput: true,
+    multiOutput: true,
+    desc: "A partir da introdução refinada (ou do rascunho do roteiro) e de um briefing visual, gera 2–3 variações de thumbnail alinhadas ao gancho do conteúdo. Suba referências do seu canal para manter a identidade visual.",
+  },
 ];
 
 // ── Guided pipeline order (agent ids). Sugestivo, não bloqueante (RN02). ──
@@ -259,6 +298,7 @@ export const GUIDED_FLOW: string[] = [
   "roteirista",
   "roteirizador-intro",
   "analista-roteiro",
+  "gerador-thumbnails",
 ];
 
 export const agentById = (id: string): Agent | undefined =>

@@ -7,7 +7,7 @@ import { connectToDatabase } from "@/lib/db/mongoose";
 import { Project } from "@/models/Project";
 import { Artifact } from "@/models/Artifact";
 import { type ProjectStatus } from "@/lib/catalog";
-import { type AIModelId } from "@/lib/types";
+import { type AIModelId, type AIImageModelId } from "@/lib/types";
 
 export interface ProjectSummary {
   id: string;
@@ -76,6 +76,7 @@ export interface ProjectDetail {
   title: string;
   status: ProjectStatus;
   model: AIModelId;
+  imageModel: AIImageModelId | null;
   done: string[];
   updated: string;
 }
@@ -98,6 +99,7 @@ export async function getProjectById(
     title: p.title,
     status: p.status as ProjectStatus,
     model: p.model as AIModelId,
+    imageModel: (p.imageModel as AIImageModelId | null) ?? null,
     done: p.done ?? [],
     updated: formatRelative(p.updatedAt as Date),
   };

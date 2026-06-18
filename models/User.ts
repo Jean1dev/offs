@@ -26,6 +26,12 @@ const UserSchema = new Schema(
       enum: ["claude", "claude-sonnet", "claude-haiku", "gpt", "gpt-mini", "gemini", "gemini-flash"],
       default: DEFAULT_AI_MODEL,
     },
+    // Global default image model (RN-IMG01). Null => use the hard default.
+    defaultImageModel: {
+      type: String,
+      enum: ["gpt-image", "nano-banana", null],
+      default: null,
+    },
     channel: { type: ChannelSchema, default: null },
   },
   {

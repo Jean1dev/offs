@@ -23,10 +23,16 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("Híbrido");
   });
 
-  it("sempre anexa a regra de saída estruturada a todos os agentes", () => {
-    for (const agent of AGENTS) {
+  it("anexa a regra de saída estruturada aos agentes de texto", () => {
+    for (const agent of AGENTS.filter((a) => !a.imageOutput)) {
       expect(buildSystemPrompt(agent)).toContain("ESTRUTURADO");
     }
+  });
+
+  it("agente de imagem não recebe a regra de saída estruturada", () => {
+    const prompt = buildSystemPrompt(agentById("gerador-thumbnails")!);
+    expect(prompt).not.toContain("ESTRUTURADO");
+    expect(prompt).toContain("Gerador de Thumbnails");
   });
 
   it("todos os agentes do catálogo têm prompt oficial", () => {
