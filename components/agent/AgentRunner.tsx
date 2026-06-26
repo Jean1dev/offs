@@ -563,7 +563,7 @@ export function AgentRunner({
         text,
         sources,
         selectedArtifactIds: selArts,
-        images: images.map((im) => im.url),
+        images: images.map((im) => ({ name: im.name, url: im.url })),
         regenerateOf,
       });
       // Só alcançável quando há erro (no sucesso houve redirect). Registra a falha

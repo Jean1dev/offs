@@ -28,6 +28,17 @@ import type { ArtifactContent } from "@/lib/artifact-content";
 /** Number of thumbnail variations per execution (spec offs-geracao-imagem §4). */
 const THUMBNAIL_VARIATIONS = 3;
 
+/**
+ * Uploaded print sent through the Server Action. The data URL is wrapped in an
+ * object (instead of a bare `string[]`) so React Flight does not count its length
+ * against the array nesting guard (`_arraySizeLimit`) when several large base64
+ * images travel in the same array.
+ */
+export interface AgentImageInput {
+  name: string;
+  url: string;
+}
+
 export interface AgentRunInput {
   projectId: string;
   agentId: string;
@@ -39,7 +50,7 @@ export interface AgentRunInput {
   text: string;
   sources: string[];
   selectedArtifactIds: string[];
-  images: string[];
+  images: AgentImageInput[];
   /** When set, regenerate this artifact as a new version (RN05) instead of new. */
   regenerateOf?: string;
 }
@@ -102,6 +113,18 @@ function artifactToText(name: string, content: ArtifactContent): string {
 }
 
 export class AgentRunError extends Error {}
+
+function logAgentRequest(params: {
+  agentId: string;
+  model: string;
+  durationMs: number;
+  ok: boolean;
+}) {
+  const status = params.ok ? "ok" : "error";
+  console.log(
+    `[agent] ${status} agent=${params.agentId} model=${params.model} ${params.durationMs}ms`,
+  );
+}
 
 /** Runs an agent and returns the created artifact id. */
 export async function executeAgentRun(
@@ -181,17 +204,35 @@ export async function executeAgentRun(
       customization: overlay.imageModel,
       project: (project.imageModel as AIImageModelId | null) ?? undefined,
     });
-    return executeImageRun({
-      userId,
-      uid,
-      project,
-      agent,
-      produces,
-      context,
-      input,
-      imageModel,
-      promptBase: overlay.prompt ?? buildSystemPrompt(agent),
-    });
+    const started = performance.now();
+    try {
+      const artifactId = await executeImageRun({
+        userId,
+        uid,
+        project,
+        agent,
+        produces,
+        context,
+        input,
+        imageModel,
+        promptBase: overlay.prompt ?? buildSystemPrompt(agent),
+      });
+      logAgentRequest({
+        agentId: agent.id,
+        model: imageModel,
+        durationMs: Math.round(performance.now() - started),
+        ok: true,
+      });
+      return artifactId;
+    } catch (e) {
+      logAgentRequest({
+        agentId: agent.id,
+        model: imageModel,
+        durationMs: Math.round(performance.now() - started),
+        ok: false,
+      });
+      throw e;
+    }
   }
 
   const model = resolveModel({
@@ -207,6 +248,7 @@ export async function executeAgentRun(
   // mascarar o erro original (ex.: trocar InsufficientCreditsError por um erro
   // de escrita do Mongo faria a UI mostrar a mensagem técnica genérica).
   const cost = agentCost(agent.id);
+  const started = performance.now();
   const safeRecord = async (
     status: "sucesso" | "erro_llm" | "bloqueado_credito",
     tokensInput: number,
@@ -233,6 +275,12 @@ export async function executeAgentRun(
     await reserveCredits(userId, cost);
   } catch (e) {
     await safeRecord("bloqueado_credito", 0, 0, 0);
+    logAgentRequest({
+      agentId: agent.id,
+      model,
+      durationMs: Math.round(performance.now() - started),
+      ok: false,
+    });
     throw e;
   }
 
@@ -258,7 +306,9 @@ export async function executeAgentRun(
       model,
       context: finalContext,
       narrative: agent.narrative ? input.narrative : undefined,
-      images: effInputs.includes("image") ? input.images : undefined,
+      images: effInputs.includes("image")
+        ? input.images.map((im) => im.url)
+        : undefined,
       systemPromptOverride: overlay.prompt,
     });
     const content = result.content;
@@ -273,8 +323,8 @@ export async function executeAgentRun(
       if (storage) {
         try {
           inputImages = await Promise.all(
-            input.images.map((dataUrl, i) =>
-              storage.uploadDataUrl(dataUrl, {
+            input.images.map((im, i) =>
+              storage.uploadDataUrl(im.url, {
                 bucket: "offs-prints",
                 filename: `print-${i + 1}.png`,
               }),
@@ -322,12 +372,23 @@ export async function executeAgentRun(
   } catch (e) {
     await releaseCredits(userId, cost);
     await safeRecord("erro_llm", 0, 0, 0);
+    logAgentRequest({
+      agentId: agent.id,
+      model,
+      durationMs: Math.round(performance.now() - started),
+      ok: false,
+    });
     throw e;
   }
 
-  // Sucesso: os créditos já foram debitados na reserva. Registra o consumo com
-  // os tokens reais para informar o billing futuro (spec §7/§8).
   await safeRecord("sucesso", usage.inputTokens, usage.outputTokens, cost);
+
+  logAgentRequest({
+    agentId: agent.id,
+    model,
+    durationMs: Math.round(performance.now() - started),
+    ok: true,
+  });
 
   return String(artifact._id);
 }
@@ -413,7 +474,7 @@ async function executeImageRun(args: ImageRunArgs): Promise<string> {
     const result = await runImageAgent({
       imageModel,
       prompt,
-      refs: input.images.length ? input.images : undefined,
+      refs: input.images.length ? input.images.map((im) => im.url) : undefined,
       n: THUMBNAIL_VARIATIONS,
     });
 
@@ -435,8 +496,8 @@ async function executeImageRun(args: ImageRunArgs): Promise<string> {
     if (input.images.length) {
       try {
         inputImages = await Promise.all(
-          input.images.map((dataUrl, i) =>
-            storage.uploadDataUrl(dataUrl, {
+          input.images.map((im, i) =>
+            storage.uploadDataUrl(im.url, {
               bucket: "offs-prints",
               filename: `${runId}-ref-${i + 1}.png`,
             }),
