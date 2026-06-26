@@ -3,15 +3,8 @@
 //   POST {baseUrl}/v1/s3?bucket={bucket}   (multipart/form-data, field "file")
 //   → 200 OK with the file URL/identifier as plain text.
 
+import { dataUrlToBlob } from "@/lib/storage/data-url";
 import { type Storage, type UploadOptions, StorageError } from "@/lib/storage/types";
-
-function dataUrlToBlob(dataUrl: string): Blob {
-  const match = /^data:([^;,]+);base64,([\s\S]*)$/.exec(dataUrl);
-  if (!match) throw new StorageError("Data URL inválida (esperado base64).");
-  const [, mime, base64] = match;
-  const bytes = Buffer.from(base64, "base64");
-  return new Blob([bytes], { type: mime });
-}
 
 export class S3ApiStorage implements Storage {
   constructor(

@@ -13,6 +13,7 @@ import "@fontsource/dm-sans/500.css";
 import "@fontsource/dm-sans/600.css";
 import "./globals.css";
 import { ConsentManager } from "@/components/analytics/ConsentManager";
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const metadata: Metadata = {
   title: "Pauta — Assistente de Roteiros",
@@ -36,6 +37,7 @@ export default function RootLayout({
         />
         {children}
         <ConsentManager />
+        <SpeedInsights />
       </body>
     </html>
   );

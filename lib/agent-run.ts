@@ -373,7 +373,7 @@ async function executeImageRun(args: ImageRunArgs): Promise<string> {
   const storage = getStorage();
   if (!storage) {
     throw new AgentRunError(
-      "Geração de thumbnails exige armazenamento de imagens configurado (STORAGE_API_URL).",
+      "Geração de thumbnails exige armazenamento de imagens configurado (BLOB_READ_WRITE_TOKEN ou STORAGE_API_URL).",
     );
   }
 

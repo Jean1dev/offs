@@ -16,6 +16,8 @@
     "@auth/mongodb-adapter": "^3.11.2",
     "@fontsource/cormorant-garamond": "^5.2.11",
     "@fontsource/dm-sans": "^5.2.8",
+    "@vercel/blob": "^2.5.0",
+    "@vercel/speed-insights": "^2.0.0",
     "ai": "^6.0.197",
     "firebase": "^12.14.0",
     "mongodb": "^6.21.0",
