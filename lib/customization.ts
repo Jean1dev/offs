@@ -110,7 +110,7 @@ export async function saveCustomization(
   await AgentCustomization.findOneAndUpdate(
     { userId: uid, agentId, scope: data.scope, projectId: pid },
     { prompt: data.prompt, model: data.model },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true },
   );
 }
 

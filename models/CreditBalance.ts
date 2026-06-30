@@ -111,7 +111,7 @@ CreditBalanceSchema.statics.reserve = async function (
   const updated = await this.findOneAndUpdate(
     { userId, creditosRestantes: { $gte: cost } },
     { $inc: { creditosRestantes: -cost } },
-    { new: true },
+    { returnDocument: "after" },
   );
   return updated ? updated.creditosRestantes : null;
 };
@@ -124,18 +124,22 @@ CreditBalanceSchema.statics.release = async function (
   // Devolução atômica (pipeline update): soma e trava no teto diário num único
   // documento (RN-C06). Evita o lost-update de um read-modify-write quando duas
   // liberações concorrem — simétrico ao $inc atômico do reserve.
-  await this.updateOne({ userId }, [
-    {
-      $set: {
-        creditosRestantes: {
-          $min: [
-            "$creditosDiarios",
-            { $add: ["$creditosRestantes", cost] },
-          ],
+  await this.updateOne(
+    { userId },
+    [
+      {
+        $set: {
+          creditosRestantes: {
+            $min: [
+              "$creditosDiarios",
+              { $add: ["$creditosRestantes", cost] },
+            ],
+          },
         },
       },
-    },
-  ]);
+    ],
+    { updatePipeline: true },
+  );
 };
 
 export const CreditBalance: CreditBalanceModel =
